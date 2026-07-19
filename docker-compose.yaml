@@ -1,0 +1,14 @@
+version: "3"
+services:
+  server:
+    image: ${REPO_DOCKER}/${APP_NAME}:${APP_VERSION}
+    build:
+      ./
+      # context: .
+      # target: final
+    # restart: unless-stopped
+    tty: true
+    ports:
+      - "10002:${APP_PORT}"
+    environment:
+      TZ: "Asia/Jakarta"
