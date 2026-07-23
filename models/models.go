@@ -573,3 +573,5 @@ type SegmentFilters struct {
 	ID          int64  `json:"id"`
 	SegmentName string `json:"segment_name"`
 }
+
+

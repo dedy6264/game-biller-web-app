@@ -1,17 +1,36 @@
 package webapp
 
 import (
+	"bytes"
 	"database/sql"
+	"encoding/json"
 	"gamebiller/connections"
 	"gamebiller/helpers"
 	"gamebiller/models"
 	"gamebiller/repositories"
+	"io"
 	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/labstack/echo/v4"
 )
+
+// callIAKPayment sends payment request to IAK worker
+func callIAKPayment(payload models.RequestPayment) (*models.PaymentResult, error) {
+	body, _ := json.Marshal(payload)
+	resp, err := http.Post(IakWorkerHost+"/api/iak/payment", "application/json", bytes.NewBuffer(body))
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	data, _ := io.ReadAll(resp.Body)
+	var result models.PaymentResult
+	if err := json.Unmarshal(data, &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
 
 // === 8. PAYMENT ===
 func Payment(c echo.Context) error {
@@ -52,9 +71,31 @@ func Payment(c echo.Context) error {
 		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-AUTH-403", nil))
 	}
 
-	// 3. Validasi status transaksi — harus dalam status inquiry success
-	if trx.StatusCode != StatusInquirySuccess {
-		// Status selain inquiry success dinyatakan invalid transaction
+	// 3. Validasi status transaksi
+	switch trx.StatusCode {
+	case helpers.CodeInqSuccess:
+		// lanjutkan ke proses payment
+	case helpers.CodeSuccess:
+		// Sudah selesai — kembalikan data dari DB
+		helpers.ProcessLogger(c, svc, "Transaction already paid: "+trx.ReferenceNumberInternal, "Already processed")
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeSuccess, map[string]any{
+			"reference_number_internal": trx.ReferenceNumberInternal,
+			"product_code":              trx.SnapshotProductCode,
+			"product_name":              trx.SnapshotProductName,
+			"total_amount":              trx.TotalAmount,
+			"target_user_id":            trx.TargetUserID,
+			"serial_number":             trx.SerialNumber,
+			"status":                    trx.StatusMessage,
+		}))
+	case helpers.CodeErrPvd3303:
+		// Sudah gagal — kembalikan data dari DB
+		helpers.ProcessLogger(c, svc, "Transaction already failed: "+trx.ReferenceNumberInternal, "Already failed")
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrPvd3303, map[string]any{
+			"reference_number_internal": trx.ReferenceNumberInternal,
+			"status":                    trx.StatusMessage,
+		}))
+	default:
+		// Status lain (PENDING, dll) — invalid transaction
 		helpers.ProcessLogger(c, svc, "Invalid transaction status: "+trx.StatusCode, "Validation error")
 		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-INT-102", nil))
 	}
@@ -117,7 +158,6 @@ func Payment(c echo.Context) error {
 			if err := repositories.UpdateSavingAccountBalance(tx, sa.ID, newBalance, strconv.FormatInt(claims.UserID, 10), now); err != nil {
 				return err
 			}
-
 			st := models.SavingTransaction{
 				SavingAccountID: sa.ID,
 				TypeDC:          "D",
@@ -139,17 +179,57 @@ func Payment(c echo.Context) error {
 		}
 	}
 
-	// 6. Update status transaksi menjadi payment success (dalam DB transaction)
-	providerRef := "PVD-" + helpers.RandomDigits(12)
-	serialNum := "SN-" + helpers.RandomDigits(16)
-
-	trx.StatusCode = StatusPaymentSuccess
-	trx.StatusMessage = "PAYMENT_SUCCESS"
-	trx.ReferenceNumberProvider = &providerRef
-	trx.SerialNumber = &serialNum
+	// 6. Validasi provider — jika provider_id = 1 (IAK), panggil worker IAK payment
 	trx.UpdatedAt = now
 	trx.UpdatedBy = strconv.FormatInt(claims.UserID, 10)
 
+	if trx.ProductProviderID != nil && *trx.ProductProviderID == ProviderIAK {
+		// Siapkan bill_desc dari data yang tersimpan di transaksi
+		billDesc := trx.SnapshotProductName + " - " + trx.TargetUserID
+
+		iakReq := models.RequestPayment{
+			RefID: trx.ReferenceNumberInternal,
+			ProviderRefID: func() string {
+				if trx.ReferenceNumberProvider != nil {
+					return *trx.ReferenceNumberProvider
+				}
+				return ""
+			}(),
+			BillDesc: billDesc,
+		}
+
+		iakResult, err := callIAKPayment(iakReq)
+		if err != nil {
+			helpers.ProcessLogger(c, svc, err.Error(), "IAK worker payment call failed")
+			trx.StatusCode = StatusPending
+			trx.StatusMessage = "PENDING_UPSTREAM"
+		} else {
+			if iakResult.StatusCode == "00" || iakResult.StatusCode == "SUCCESS" {
+				trx.StatusCode = StatusPaymentSuccess
+				trx.StatusMessage = "PAYMENT_SUCCESS"
+				// Update data hasil worker ke transaksi
+				if iakResult.DataTransaction.SerialNumber != "" {
+					trx.SerialNumber = &iakResult.DataTransaction.SerialNumber
+				}
+				if iakResult.ProviderRefID != "" {
+					trx.ReferenceNumberProvider = &iakResult.ProviderRefID
+				}
+			} else {
+				trx.StatusCode = StatusFailed
+				trx.StatusMessage = iakResult.ProviderDetail.Message
+			}
+		}
+	} else {
+		// Provider bukan IAK — langsung set payment success
+		serialNum := "SN-" + helpers.RandomDigits(16)
+		providerRef := "PVD-" + helpers.RandomDigits(12)
+		trx.StatusCode = StatusPaymentSuccess
+		trx.StatusMessage = "PAYMENT_SUCCESS"
+		trx.SerialNumber = &serialNum
+		trx.ReferenceNumberProvider = &providerRef
+	}
+
+	// 7. Update status transaksi di DB
 	err = helpers.DBTransaction(db, func(tx *sql.Tx) error {
 		return repositories.UpdateTransaction(tx, trx)
 	})
@@ -158,13 +238,13 @@ func Payment(c echo.Context) error {
 		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-SYS-500", nil))
 	}
 
-	return c.JSON(http.StatusOK, helpers.BuildResponse("SUC-INT-000", map[string]any{
+	return c.JSON(http.StatusOK, helpers.BuildResponse(trx.StatusCode, map[string]any{
 		"reference_number_internal": trx.ReferenceNumberInternal,
 		"product_code":              trx.SnapshotProductCode,
 		"product_name":              trx.SnapshotProductName,
 		"total_amount":              trx.TotalAmount,
 		"target_user_id":            trx.TargetUserID,
-		"serial_number":             serialNum,
-		"status":                    "PAYMENT_SUCCESS",
+		"serial_number":             trx.SerialNumber,
+		"status":                    trx.StatusMessage,
 	}))
 }

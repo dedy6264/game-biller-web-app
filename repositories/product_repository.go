@@ -863,3 +863,92 @@ func GetProductSegmentsByRefCodeAndSegment(exec QueryExecutor, refCode string, s
 	}
 	return result, nil
 }
+
+type ProductSegmentDetailResult struct {
+	ProductSegmentID           int64
+	SegmentID                  *int64
+	ProductID                  int64
+	ProductCode                string
+	ProductName                string
+	ProductReferenceID         *int64
+	ProductTypeID              int64
+	ProductCategoryID          int64
+	ProductIsActive            bool
+	ProductPrice               float64
+	AdminFee                   float64
+	MerchantFee                float64
+	ProviderProductPrice       float64
+	ProviderProductAdminFee    float64
+	ProviderProductMerchantFee float64
+	ProductProviderID          *int64
+	ProviderID                 int64
+	ProviderProductCode        string
+	ProviderPrice              float64
+	ProviderAdminFee           float64
+	ProviderMerchantFee        float64
+	ProviderIsAvailable        bool
+}
+
+// GetProductSegmentJoinProvider fetches product segment pricing joined with products and product_providers
+// by segmentID and productCode.
+func GetProductSegmentJoinProvider(exec QueryExecutor, segmentID int64, productCode string) (*ProductSegmentDetailResult, error) {
+	query := `SELECT 
+		ps.id, 
+		ps.segment_id, 
+		ps.product_id, 
+		ps.product_provider_id, 
+		ps.product_price, 
+		ps.admin_fee, 
+		ps.merchant_fee,
+		ps.provider_product_price, 
+		ps.provider_product_admin_fee, 
+		ps.provider_product_merchant_fee,
+		p.product_code, 
+		p.product_name, 
+		p.is_active, 
+		p.product_reference_id, 
+		p.product_type_id, 
+		p.product_category_id,
+		COALESCE(pp.provider_id, 0), 
+		COALESCE(pp.provider_product_code, ''),
+		COALESCE(pp.provider_price, 0), 
+		COALESCE(pp.provider_admin_fee, 0), 
+		COALESCE(pp.provider_merchant_fee, 0), 
+		COALESCE(pp.is_available, true)
+	FROM product_segments ps
+	JOIN products p ON ps.product_id = p.id
+	LEFT JOIN product_providers pp ON ps.product_provider_id = pp.id
+	WHERE ps.segment_id = $1 AND p.product_code = $2
+	LIMIT 1`
+	var res ProductSegmentDetailResult
+	err := exec.QueryRow(query, segmentID, productCode).Scan(
+		&res.ProductSegmentID,
+		&res.SegmentID,
+		&res.ProductID,
+		&res.ProductProviderID,
+		&res.ProductPrice,
+		&res.AdminFee,
+		&res.MerchantFee,
+		&res.ProviderProductPrice,
+		&res.ProviderProductAdminFee,
+		&res.ProviderProductMerchantFee,
+		&res.ProductCode,
+		&res.ProductName,
+		&res.ProductIsActive,
+		&res.ProductReferenceID,
+		&res.ProductTypeID,
+		&res.ProductCategoryID,
+		&res.ProviderID,
+		&res.ProviderProductCode,
+		&res.ProviderPrice,
+		&res.ProviderAdminFee,
+		&res.ProviderMerchantFee,
+		&res.ProviderIsAvailable,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+

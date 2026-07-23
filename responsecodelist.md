@@ -2,8 +2,8 @@
 ## Kelompok Kode: Transaksi Sukses / Pending (SUC / PEN)
 ['SUC-INT-000','SUCCESS','Transaction successfully processed and delivery confirmed.','Top-up berhasil! Produk telah masuk ke akun game Anda. Terima kasih.')]
 ['PEN-SYS-001','PENDING_UPSTREAM','Transaction accepted by core system and currently queued in the upstream gateway.','Pembayaran diterima. Pesanan Anda sedang diproses oleh sistem game. Mohon tunggu.')]
-['PEN-INT-002','PENDING_MANUAL_REVIEW','Transaction suspended internally for security verification or compliance approval.','Transaksi Anda sedang diverifikasi demi keamanan. Mohon tunggu maksimal 5 menit.')]
-['PEN-SYS-003','PENDING_RETRY','Upstream network glitch detected. Core system is auto-switching or retrying the request.','Jaringan server game sedang padat. Sistem kami sedang mencoba mengirimkan ulang pesanan Anda.')]
+['INQ-INT-002','PENDING_MANUAL_REVIEW','Transaction suspended internally for security verification or compliance approval.','Transaksi Anda sedang diverifikasi demi keamanan. Mohon tunggu maksimal 5 menit.')]
+['INQ-INT-003','PENDING_RETRY','Upstream network glitch detected. Core system is auto-switching or retrying the request.','Jaringan server game sedang padat. Sistem kami sedang mencoba mengirimkan ulang pesanan Anda.')]
 
 ## Kelompok Kode: Kesalahan Input Pengguna (ERR - User Input)
 ['ERR-VAL-100','INVALID_PLAYER_ID','External game validator service rejected the provided Player ID, Zone ID, or Server ID.','ID Game tidak terdaftar atau salah server. Silakan periksa kembali data Anda dan coba lagi.')]
