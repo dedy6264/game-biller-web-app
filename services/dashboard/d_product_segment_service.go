@@ -20,9 +20,9 @@ func AdminGetProductSegments(c echo.Context) error {
 	list, total, err := repositories.GetProductSegmentsList(connections.DBconn(), req.Start, req.Length, req.Filters)
 	if err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to retrieve product segments list")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-SYS-500", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrSys500, nil))
 	}
-	return c.JSON(http.StatusOK, helpers.BuildResponse("SUC-INT-000", map[string]any{
+	return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeSuccess, map[string]any{
 		"draw":            req.Draw,
 		"recordsTotal":    total,
 		"recordsFiltered": total,
@@ -37,7 +37,7 @@ func AdminCreateProductSegment(c echo.Context) error {
 	)
 	if err := c.Bind(&ps); err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to bind request")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-VAL-104", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
 	}
 	now := time.Now().Format("2006-01-02T15:04:05Z07:00")
 	ps.CreatedAt = now
@@ -48,9 +48,9 @@ func AdminCreateProductSegment(c echo.Context) error {
 	_, err := repositories.CreateProductSegment(connections.DBconn(), &ps)
 	if err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to create product segment")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-SYS-500", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrSys500, nil))
 	}
-	return c.JSON(http.StatusOK, helpers.BuildResponse("SUC-INT-000", ps))
+	return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeSuccess, ps))
 }
 
 func AdminUpdateProductSegment(c echo.Context) error {
@@ -60,18 +60,18 @@ func AdminUpdateProductSegment(c echo.Context) error {
 	)
 	if err := c.Bind(&input); err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to bind request")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-VAL-104", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
 	}
 	if input.ID == 0 {
 		helpers.ProcessLogger(c, svc, "ID cannot be zero", "Validation error")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-VAL-104", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
 	}
 
 	db := connections.DBconn()
 	ps, err := repositories.GetProductSegmentByID(db, input.ID)
 	if err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Product segment not found")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-USER-404", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrUser404, nil))
 	}
 
 	ps.SegmentName = input.SegmentName
@@ -90,9 +90,9 @@ func AdminUpdateProductSegment(c echo.Context) error {
 	err = repositories.UpdateProductSegment(db, ps)
 	if err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to update product segment")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-SYS-500", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrSys500, nil))
 	}
-	return c.JSON(http.StatusOK, helpers.BuildResponse("SUC-INT-000", ps))
+	return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeSuccess, ps))
 }
 
 func AdminDeleteProductSegment(c echo.Context) error {
@@ -104,17 +104,17 @@ func AdminDeleteProductSegment(c echo.Context) error {
 	)
 	if err := c.Bind(&req); err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to bind request")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-VAL-104", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
 	}
 	if req.ID == 0 {
 		helpers.ProcessLogger(c, svc, "ID cannot be zero", "Validation error")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-VAL-104", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
 	}
 
 	err := repositories.DeleteProductSegment(connections.DBconn(), req.ID)
 	if err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to delete product segment")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-SYS-500", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrSys500, nil))
 	}
-	return c.JSON(http.StatusOK, helpers.BuildResponse("SUC-INT-000", map[string]any{"id": req.ID}))
+	return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeSuccess, map[string]any{"id": req.ID}))
 }

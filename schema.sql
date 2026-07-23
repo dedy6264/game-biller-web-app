@@ -205,6 +205,8 @@ CREATE TABLE product_segments (
   segment_id BIGINT REFERENCES segments(id) ON DELETE SET NULL,
   product_provider_id BIGINT REFERENCES product_providers(id) ON DELETE SET NULL,
   segment_name VARCHAR(255), -- Public_Retail, Gold_Reseller, H2H_Partner
+  product_provider_code VARCHAR(255),
+  product_provider_name VARCHAR(255),
   product_id BIGINT REFERENCES products(id) ON DELETE CASCADE,
   product_price NUMERIC(15,2),
   admin_fee NUMERIC(15,2) DEFAULT 0.00,
@@ -251,18 +253,34 @@ CREATE TABLE transactions (
   product_id BIGINT REFERENCES products(id) ON DELETE SET NULL,
   product_segment_id BIGINT REFERENCES product_segments(id) ON DELETE SET NULL,
   product_provider_id BIGINT REFERENCES product_providers(id) ON DELETE SET NULL,
+  provider_id BIGINT REFERENCES providers(id) ON DELETE SET NULL,
+  product_type_id BIGINT REFERENCES product_types(id) ON DELETE SET NULL,
+  product_reference_id BIGINT REFERENCES product_references(id) ON DELETE SET NULL,
   payment_channel_id BIGINT REFERENCES payment_channels(id) ON DELETE SET NULL,
   
+  product_code VARCHAR(255),
   snapshot_product_code VARCHAR(255),
   snapshot_product_name VARCHAR(255),
+  merchant_name VARCHAR(255),
+  product_name VARCHAR(255),
+  product_segment_name VARCHAR(255),
+  product_provider_code VARCHAR(255),
+  product_provider_name VARCHAR(255),
+  provider_name VARCHAR(255),
+  product_type_name VARCHAR(255),
+  payment_channel_name VARCHAR(255),
   
-  buy_price NUMERIC(15,2),
-  sell_price NUMERIC(15,2),
-  admin_fee NUMERIC(15,2),
-  payment_fee NUMERIC(15,2),
+  product_provider_price NUMERIC(15,2),
+  product_price NUMERIC(15,2),
+  product_admin_fee NUMERIC(15,2),
+  product_merchant_fee NUMERIC(15,2),
+  product_provider_admin_fee NUMERIC(15,2),
+  product_provider_merchant_fee NUMERIC(15,2),
+  payment_admin_fee NUMERIC(15,2),
   total_amount NUMERIC(15,2),
   
-  target_user_id VARCHAR(255),
+  customer_id VARCHAR(255),
+  other_customer_id TEXT,
   reference_number_internal VARCHAR(255) UNIQUE,
   reference_number_merchant VARCHAR(255),
   reference_number_provider VARCHAR(255),
@@ -377,12 +395,19 @@ CREATE INDEX IF NOT EXISTS idx_payment_channels_is_active         ON payment_cha
 CREATE INDEX IF NOT EXISTS idx_transactions_merchant_id               ON transactions(merchant_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_product_id                ON transactions(product_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_product_segment_id        ON transactions(product_segment_id);
+CREATE INDEX IF NOT EXISTS idx_transactions_product_provider_id       ON transactions(product_provider_id);
+CREATE INDEX IF NOT EXISTS idx_transactions_provider_id               ON transactions(provider_id);
+CREATE INDEX IF NOT EXISTS idx_transactions_product_type_id           ON transactions(product_type_id);
+CREATE INDEX IF NOT EXISTS idx_transactions_product_reference_id      ON transactions(product_reference_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_payment_channel_id        ON transactions(payment_channel_id);
+CREATE INDEX IF NOT EXISTS idx_transactions_product_code              ON transactions(product_code);
+CREATE INDEX IF NOT EXISTS idx_transactions_product_provider_code     ON transactions(product_provider_code);
 CREATE INDEX IF NOT EXISTS idx_transactions_reference_number_internal ON transactions(reference_number_internal);
 CREATE INDEX IF NOT EXISTS idx_transactions_reference_number_merchant ON transactions(reference_number_merchant);
 CREATE INDEX IF NOT EXISTS idx_transactions_reference_number_provider ON transactions(reference_number_provider);
 CREATE INDEX IF NOT EXISTS idx_transactions_status_code               ON transactions(status_code);
-CREATE INDEX IF NOT EXISTS idx_transactions_target_user_id            ON transactions(target_user_id);
+CREATE INDEX IF NOT EXISTS idx_transactions_customer_id               ON transactions(customer_id);
+CREATE INDEX IF NOT EXISTS idx_transactions_other_customer_id         ON transactions(other_customer_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_snapshot_product_code     ON transactions(snapshot_product_code);
 -- Composite: merchant + status sering difilter bersamaan di dashboard
 CREATE INDEX IF NOT EXISTS idx_transactions_merchant_status           ON transactions(merchant_id, status_code);
@@ -407,7 +432,7 @@ INSERT INTO product_categories (id, product_category_name) OVERRIDING SYSTEM VAL
 (1, 'Game Top Up'),
 (2, 'Pulsa & Data'),
 (3, 'E-Wallet'),
-(4, 'Tagihan PLN & PDAM');
+(4, 'Tagihan PLN');
 
 INSERT INTO product_references (id, product_reference_code, product_reference_name, created_at, updated_at) OVERRIDING SYSTEM VALUE VALUES
 (1, 'ref_tsel', 'TELKOMSEL', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')),

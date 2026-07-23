@@ -18,7 +18,7 @@ func GetPaymentMethod(c echo.Context) error {
 	list, err := repositories.GetPaymentMethodsWithChannels(db)
 	if err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to get payment methods")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-SYS-500", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrSys500, nil))
 	}
-	return c.JSON(http.StatusOK, helpers.BuildResponse("SUC-INT-000", list))
+	return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeSuccess, list))
 }

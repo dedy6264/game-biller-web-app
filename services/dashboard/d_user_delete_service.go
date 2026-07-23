@@ -18,16 +18,16 @@ func AdminDeleteUser(c echo.Context) error {
 	)
 	if err := c.Bind(&req); err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to bind request")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-VAL-104", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
 	}
 	if req.ID == 0 {
 		helpers.ProcessLogger(c, svc, "ID cannot be zero", "Validation error")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-VAL-104", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
 	}
 	err := repositories.DeleteUser(connections.DBconn(), req.ID)
 	if err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to delete user")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-SYS-500", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrSys500, nil))
 	}
-	return c.JSON(http.StatusOK, helpers.BuildResponse("SUC-INT-000", map[string]any{"id": req.ID}))
+	return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeSuccess, map[string]any{"id": req.ID}))
 }

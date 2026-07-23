@@ -26,12 +26,12 @@ func GetProductSegmentByCustomer(c echo.Context) error {
 
 	if customerID == "" {
 		helpers.ProcessLogger(c, svc, "Customer ID is required", "Validation error")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-VAL-104", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
 	}
 
 	if len(customerID) < 5 {
 		helpers.ProcessLogger(c, svc, "Customer ID is too short", "Validation error")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-VAL-104", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
 	}
 
 	db := connections.DBconn()
@@ -40,7 +40,7 @@ func GetProductSegmentByCustomer(c echo.Context) error {
 	ref, err := repositories.MatchPhonePrefix(db, customerID)
 	if err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to match customer ID prefix")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-SYS-404", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrSys404, nil))
 	}
 
 	// 2. Coba resolve segment dari JWT (opsional)
@@ -58,11 +58,11 @@ func GetProductSegmentByCustomer(c echo.Context) error {
 
 	if err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to get product segments")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-SYS-500", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrSys500, nil))
 	}
 
 	// 3. Return resolved reference code beserta daftar produk di segment yang sesuai
-	return c.JSON(http.StatusOK, helpers.BuildResponse("SUC-INT-000", map[string]any{
+	return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeSuccess, map[string]any{
 		"reference_code":   ref.ProductReferenceCode,
 		"segment":          segmentName,
 		"is_authenticated": authenticated,

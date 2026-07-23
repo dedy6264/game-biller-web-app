@@ -1,14 +1,13 @@
 package webapp
 
 import (
-	"bytes"
 	"database/sql"
 	"encoding/json"
 	"gamebiller/connections"
 	"gamebiller/helpers"
 	"gamebiller/models"
 	"gamebiller/repositories"
-	"io"
+	"gamebiller/utils"
 	"net/http"
 	"strconv"
 	"time"
@@ -16,15 +15,12 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-// callIAKPayment sends payment request to IAK worker
+// callIAKPayment sends payment request to IAK worker using utils.WorkerRequestPOST
 func callIAKPayment(payload models.RequestPayment) (*models.PaymentResult, error) {
-	body, _ := json.Marshal(payload)
-	resp, err := http.Post(IakWorkerHost+"/api/iak/payment", "application/json", bytes.NewBuffer(body))
+	data, _, err := utils.WorkerRequestPOST("json", IakWorkerHost+"/api/iak/payment", payload, models.ReqHeader{}, 30*time.Second)
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
-	data, _ := io.ReadAll(resp.Body)
 	var result models.PaymentResult
 	if err := json.Unmarshal(data, &result); err != nil {
 		return nil, err
@@ -42,18 +38,18 @@ func Payment(c echo.Context) error {
 	claims, ok := helpers.GetClaims(c)
 	if !ok {
 		helpers.ProcessLogger(c, svc, "Failed to get claims", "Authorization error")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-AUTH-419", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrAuth419, nil))
 	}
 
 	var req models.PaymentRequest
 	if err := c.Bind(&req); err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to bind request")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-VAL-104", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
 	}
 
 	if req.ReferenceNumberInternal == "" {
 		helpers.ProcessLogger(c, svc, "reference_number_internal is empty", "Validation error")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-VAL-104", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
 	}
 
 	db := connections.DBconn()
@@ -62,160 +58,156 @@ func Payment(c echo.Context) error {
 	trx, err := repositories.GetTransactionByRefInternal(db, req.ReferenceNumberInternal)
 	if err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Transaction not found")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-INT-101", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidProductNotFound, nil))
 	}
 
 	// Pastikan transaksi milik merchant yang memanggil API ini
 	if trx.MerchantID != claims.MerchantID {
 		helpers.ProcessLogger(c, svc, "Unauthorized access to transaction", "Authorization error")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-AUTH-403", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrAuth403, nil))
 	}
 
 	// 3. Validasi status transaksi
-	switch trx.StatusCode {
-	case helpers.CodeInqSuccess:
-		// lanjutkan ke proses payment
-	case helpers.CodeSuccess:
-		// Sudah selesai — kembalikan data dari DB
-		helpers.ProcessLogger(c, svc, "Transaction already paid: "+trx.ReferenceNumberInternal, "Already processed")
-		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeSuccess, map[string]any{
-			"reference_number_internal": trx.ReferenceNumberInternal,
-			"product_code":              trx.SnapshotProductCode,
-			"product_name":              trx.SnapshotProductName,
-			"total_amount":              trx.TotalAmount,
-			"target_user_id":            trx.TargetUserID,
-			"serial_number":             trx.SerialNumber,
-			"status":                    trx.StatusMessage,
-		}))
-	case helpers.CodeErrPvd3303:
-		// Sudah gagal — kembalikan data dari DB
-		helpers.ProcessLogger(c, svc, "Transaction already failed: "+trx.ReferenceNumberInternal, "Already failed")
-		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrPvd3303, map[string]any{
-			"reference_number_internal": trx.ReferenceNumberInternal,
-			"status":                    trx.StatusMessage,
-		}))
-	default:
-		// Status lain (PENDING, dll) — invalid transaction
+	if trx.StatusCode != helpers.CodeInqSuccess {
 		helpers.ProcessLogger(c, svc, "Invalid transaction status: "+trx.StatusCode, "Validation error")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-INT-102", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidTransaction, nil))
 	}
 
 	// 4. Fetch dan validasi payment channel
-	if trx.PaymentChannelID == nil {
-		helpers.ProcessLogger(c, svc, "Payment channel ID is nil", "Internal error")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-SYS-500", nil))
-	}
-	channel, err := repositories.GetPaymentChannelByID(db, *trx.PaymentChannelID)
-	if err != nil {
-		helpers.ProcessLogger(c, svc, err.Error(), "Failed to get payment channel")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-SYS-500", nil))
-	}
+	// if trx.PaymentChannelID == nil {
+	// 	helpers.ProcessLogger(c, svc, "Payment channel ID is nil", "Internal error")
+	// 	return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrSys500, nil))
+	// }
+	// channel, err := repositories.GetPaymentChannelByID(db, *trx.PaymentChannelID)
+	// if err != nil {
+	// 	helpers.ProcessLogger(c, svc, err.Error(), "Failed to get payment channel")
+	// 	return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrSys500, nil))
+	// }
 
-	// Validasi channel masih aktif
-	if !channel.IsActive {
-		helpers.ProcessLogger(c, svc, "Payment channel is inactive: "+channel.ChannelCode, "Validation error")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-INT-204", nil))
-	}
+	// // Validasi channel masih aktif
+	// if !channel.IsActive {
+	// 	helpers.ProcessLogger(c, svc, "Payment channel is inactive: "+channel.ChannelCode, "Validation error")
+	// 	return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrInt204, nil))
+	// }
 
-	// Validasi payment method induk channel masih aktif
-	method, err := repositories.GetPaymentMethodByID(db, channel.PaymentMethodID)
-	if err != nil {
-		helpers.ProcessLogger(c, svc, err.Error(), "Failed to get payment method")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-SYS-500", nil))
-	}
-	if !method.IsActive {
-		helpers.ProcessLogger(c, svc, "Payment method is inactive: "+method.MethodCode, "Validation error")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-INT-204", nil))
-	}
+	// // Validasi payment method induk channel masih aktif
+	// method, err := repositories.GetPaymentMethodByID(db, channel.PaymentMethodID)
+	// if err != nil {
+	// 	helpers.ProcessLogger(c, svc, err.Error(), "Failed to get payment method")
+	// 	return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrSys500, nil))
+	// }
+	// if !method.IsActive {
+	// 	helpers.ProcessLogger(c, svc, "Payment method is inactive: "+method.MethodCode, "Validation error")
+	// 	return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrInt204, nil))
+	// }
 
 	now := time.Now().Format(time.RFC3339)
 
 	// 5. Jika metode pembayaran BALANCE_INTERNAL — potong saldo & verifikasi PIN
-	if channel.ChannelCode == "BALANCE_INTERNAL" {
-		sa, err := repositories.GetSavingAccountByMerchantID(db, claims.MerchantID)
-		if err != nil || sa.Status != "active" {
-			helpers.ProcessLogger(c, svc, "Failed to get saving account or inactive", "Validation error")
-			return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-INT-103", nil))
-		}
+	// if channel.ChannelCode == "BALANCE_INTERNAL" {
+	// 	sa, err := repositories.GetSavingAccountByMerchantID(db, claims.MerchantID)
+	// 	if err != nil || sa.Status != "active" {
+	// 		helpers.ProcessLogger(c, svc, "Failed to get saving account or inactive", "Validation error")
+	// 		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrIntBalance, nil))
+	// 	}
 
-		// Verifikasi PIN
-		if sa.AccountPinHash != "" {
-			if req.PIN == "" || !helpers.CheckPasswordHash(req.PIN, sa.AccountPinHash) {
-				helpers.ProcessLogger(c, svc, "Invalid PIN", "Validation error")
-				return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-MERCH-403", nil))
-			}
-		}
+	// 	// Verifikasi PIN
+	// 	if sa.AccountPinHash != "" {
+	// 		if req.PIN == "" || !helpers.CheckPasswordHash(req.PIN, sa.AccountPinHash) {
+	// 			helpers.ProcessLogger(c, svc, "Invalid PIN", "Validation error")
+	// 			return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrMerch403, nil))
+	// 		}
+	// 	}
 
-		// Verifikasi saldo mencukupi
-		if sa.Balance < trx.TotalAmount {
-			helpers.ProcessLogger(c, svc, "Insufficient balance", "Validation error")
-			return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-INT-103", nil))
-		}
+	// 	// Verifikasi saldo mencukupi
+	// 	if sa.Balance < trx.TotalAmount {
+	// 		helpers.ProcessLogger(c, svc, "Insufficient balance", "Validation error")
+	// 		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrIntBalance, nil))
+	// 	}
 
-		// Potong saldo dan buat saving transaction dalam satu DB transaction
-		err = helpers.DBTransaction(db, func(tx *sql.Tx) error {
-			newBalance := sa.Balance - trx.TotalAmount
-			if err := repositories.UpdateSavingAccountBalance(tx, sa.ID, newBalance, strconv.FormatInt(claims.UserID, 10), now); err != nil {
-				return err
-			}
-			st := models.SavingTransaction{
-				SavingAccountID: sa.ID,
-				TypeDC:          "D",
-				Amount:          trx.TotalAmount,
-				LastBalance:     sa.Balance,
-				ReferenceNumber: trx.ReferenceNumberInternal,
-				TransactionCode: "GAME_TOPUP",
-				Description:     "Game Top Up: " + trx.SnapshotProductName,
-				CreatedAt:       now,
-				CreatedBy:       strconv.FormatInt(claims.UserID, 10),
-			}
-			_, err = repositories.CreateSavingTransaction(tx, &st)
-			return err
-		})
+	// 	// Potong saldo dan buat saving transaction dalam satu DB transaction
+	// 	err = helpers.DBTransaction(db, func(tx *sql.Tx) error {
+	// 		newBalance := sa.Balance - trx.TotalAmount
+	// 		if err := repositories.UpdateSavingAccountBalance(tx, sa.ID, newBalance, strconv.FormatInt(claims.UserID, 10), now); err != nil {
+	// 			return err
+	// 		}
+	// 		st := models.SavingTransaction{
+	// 			SavingAccountID: sa.ID,
+	// 			TypeDC:          "D",
+	// 			Amount:          trx.TotalAmount,
+	// 			LastBalance:     sa.Balance,
+	// 			ReferenceNumber: trx.ReferenceNumberInternal,
+	// 			TransactionCode: "GAME_TOPUP",
+	// 			Description:     "Game Top Up: " + trx.SnapshotProductName,
+	// 			CreatedAt:       now,
+	// 			CreatedBy:       strconv.FormatInt(claims.UserID, 10),
+	// 		}
+	// 		_, err = repositories.CreateSavingTransaction(tx, &st)
+	// 		return err
+	// 	})
 
-		if err != nil {
-			helpers.ProcessLogger(c, svc, err.Error(), "Failed to process balance deduction")
-			return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-SYS-500", nil))
-		}
-	}
+	// 	if err != nil {
+	// 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to process balance deduction")
+	// 		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrSys500, nil))
+	// 	}
+	// }
 
 	// 6. Validasi provider — jika provider_id = 1 (IAK), panggil worker IAK payment
 	trx.UpdatedAt = now
 	trx.UpdatedBy = strconv.FormatInt(claims.UserID, 10)
 
-	if trx.ProductProviderID != nil && *trx.ProductProviderID == ProviderIAK {
+	if trx.ProviderID != nil && *trx.ProviderID == ProviderIAK {
 		// Siapkan bill_desc dari data yang tersimpan di transaksi
-		billDesc := trx.SnapshotProductName + " - " + trx.TargetUserID
+		billDesc := trx.SnapshotProductName + " - " + trx.CustomerID
+
+		provRef := ""
+		if trx.ReferenceNumberProvider != nil {
+			provRef = *trx.ReferenceNumberProvider
+		}
+
+		typeID := int64(0)
+		if trx.ProductTypeID != nil {
+			typeID = *trx.ProductTypeID
+		}
+		refID := int64(0)
+		if trx.ProductReferenceID != nil {
+			refID = *trx.ProductReferenceID
+		}
 
 		iakReq := models.RequestPayment{
-			RefID: trx.ReferenceNumberInternal,
-			ProviderRefID: func() string {
-				if trx.ReferenceNumberProvider != nil {
-					return *trx.ReferenceNumberProvider
-				}
-				return ""
-			}(),
-			BillDesc: billDesc,
+			RefID:           trx.ReferenceNumberInternal,
+			ProviderRefID:   provRef,
+			BillDesc:        billDesc,
+			CustomerID:      trx.CustomerID,
+			OtherCustomerID: trx.OtherCustomerID,
+			DataProduct: models.DataProduct{
+				ProviderID:         *trx.ProviderID,
+				ProductTypeID:      typeID,
+				ProductCode:        trx.ProductProviderCode,
+				ProductReferenceID: refID,
+			},
 		}
 
 		iakResult, err := callIAKPayment(iakReq)
 		if err != nil {
 			helpers.ProcessLogger(c, svc, err.Error(), "IAK worker payment call failed")
-			trx.StatusCode = StatusPending
+			trx.StatusCode = helpers.CodeIntrPending
 			trx.StatusMessage = "PENDING_UPSTREAM"
 		} else {
-			if iakResult.StatusCode == "00" || iakResult.StatusCode == "SUCCESS" {
-				trx.StatusCode = StatusPaymentSuccess
+			if iakResult.StatusCode == helpers.CodeSuccess {
+				trx.StatusCode = helpers.CodeSuccess
 				trx.StatusMessage = "PAYMENT_SUCCESS"
 				// Update data hasil worker ke transaksi
 				if iakResult.DataTransaction.SerialNumber != "" {
-					trx.SerialNumber = &iakResult.DataTransaction.SerialNumber
+					sn := iakResult.DataTransaction.SerialNumber
+					trx.SerialNumber = &sn
 				}
 				if iakResult.ProviderRefID != "" {
-					trx.ReferenceNumberProvider = &iakResult.ProviderRefID
+					pref := iakResult.ProviderRefID
+					trx.ReferenceNumberProvider = &pref
 				}
 			} else {
-				trx.StatusCode = StatusFailed
+				trx.StatusCode = helpers.CodeIntrPending
 				trx.StatusMessage = iakResult.ProviderDetail.Message
 			}
 		}
@@ -223,7 +215,7 @@ func Payment(c echo.Context) error {
 		// Provider bukan IAK — langsung set payment success
 		serialNum := "SN-" + helpers.RandomDigits(16)
 		providerRef := "PVD-" + helpers.RandomDigits(12)
-		trx.StatusCode = StatusPaymentSuccess
+		trx.StatusCode = helpers.CodeSuccess
 		trx.StatusMessage = "PAYMENT_SUCCESS"
 		trx.SerialNumber = &serialNum
 		trx.ReferenceNumberProvider = &providerRef
@@ -235,7 +227,7 @@ func Payment(c echo.Context) error {
 	})
 	if err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to update transaction status")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-SYS-500", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrSys500, nil))
 	}
 
 	return c.JSON(http.StatusOK, helpers.BuildResponse(trx.StatusCode, map[string]any{
@@ -243,7 +235,7 @@ func Payment(c echo.Context) error {
 		"product_code":              trx.SnapshotProductCode,
 		"product_name":              trx.SnapshotProductName,
 		"total_amount":              trx.TotalAmount,
-		"target_user_id":            trx.TargetUserID,
+		"target_user_id":            trx.CustomerID,
 		"serial_number":             trx.SerialNumber,
 		"status":                    trx.StatusMessage,
 	}))

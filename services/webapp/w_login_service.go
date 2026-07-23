@@ -20,7 +20,7 @@ func Login(c echo.Context) error {
 	)
 	if err := c.Bind(&req); err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to bind request")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-VAL-104", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
 	}
 
 	db := connections.DBconn()
@@ -28,19 +28,19 @@ func Login(c echo.Context) error {
 	user, err := repositories.GetUserByEmailOrPhone(db, req.Username)
 	if err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to get user")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-AUTH-401", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrAuth401, nil))
 	}
 
 	if !helpers.CheckPasswordHash(req.Password, user.PasswordHash) {
 		helpers.ProcessLogger(c, svc, "Invalid password", "Validation error")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-AUTH-401", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrAuth401, nil))
 	}
 
 	// Fetch Role
 	role, err := repositories.GetUserRole(db, user.ID)
 	if err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to get user role")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-AUTH-403", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrAuth403, nil))
 	}
 
 	// Fetch Merchant
@@ -50,7 +50,7 @@ func Login(c echo.Context) error {
 		merchantID = merchant.ID
 	} else {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to get merchant")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-AUTH-403", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrAuth403, nil))
 	}
 
 	// Generate JWT
@@ -68,10 +68,10 @@ func Login(c echo.Context) error {
 	tokenString, err := token.SignedString([]byte(configs.APP_KEY))
 	if err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to sign JWT")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-SYS-500", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrSys500, nil))
 	}
 
-	return c.JSON(http.StatusOK, helpers.BuildResponse("SUC-AUTH-200", map[string]any{
+	return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeSuccessAuth, map[string]any{
 		"token":      tokenString,
 		"token_type": "Bearer",
 		"expires_in": 86400,

@@ -20,9 +20,9 @@ func AdminGetSegments(c echo.Context) error {
 	list, total, err := repositories.GetSegmentsList(connections.DBconn(), req.Search, req.Start, req.Length, req.Order, req.Sort, req.Filters)
 	if err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to retrieve segments list")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-SYS-500", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrSys500, nil))
 	}
-	return c.JSON(http.StatusOK, helpers.BuildResponse("SUC-INT-000", map[string]any{
+	return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeSuccess, map[string]any{
 		"draw":            req.Draw,
 		"recordsTotal":    total,
 		"recordsFiltered": total,
@@ -37,12 +37,12 @@ func AdminCreateSegment(c echo.Context) error {
 	)
 	if err := c.Bind(&s); err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to bind request")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-VAL-104", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
 	}
 
 	if s.SegmentName == "" {
 		helpers.ProcessLogger(c, svc, "Segment name is required", "Validation error")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-VAL-104", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
 	}
 
 	now := time.Now().Format("2006-01-02T15:04:05Z07:00")
@@ -54,9 +54,9 @@ func AdminCreateSegment(c echo.Context) error {
 	_, err := repositories.CreateSegment(connections.DBconn(), &s)
 	if err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to create segment")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-SYS-500", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrSys500, nil))
 	}
-	return c.JSON(http.StatusOK, helpers.BuildResponse("SUC-INT-000", s))
+	return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeSuccess, s))
 }
 
 func AdminUpdateSegment(c echo.Context) error {
@@ -66,22 +66,22 @@ func AdminUpdateSegment(c echo.Context) error {
 	)
 	if err := c.Bind(&input); err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to bind request")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-VAL-104", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
 	}
 	if input.ID == 0 {
 		helpers.ProcessLogger(c, svc, "ID cannot be zero", "Validation error")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-VAL-104", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
 	}
 	if input.SegmentName == "" {
 		helpers.ProcessLogger(c, svc, "Segment name cannot be empty", "Validation error")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-VAL-104", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
 	}
 
 	db := connections.DBconn()
 	s, err := repositories.GetSegmentByID(db, input.ID)
 	if err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Segment not found")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-USER-404", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrUser404, nil))
 	}
 
 	s.SegmentName = input.SegmentName
@@ -91,9 +91,9 @@ func AdminUpdateSegment(c echo.Context) error {
 	err = repositories.UpdateSegment(db, s)
 	if err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to update segment")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-SYS-500", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrSys500, nil))
 	}
-	return c.JSON(http.StatusOK, helpers.BuildResponse("SUC-INT-000", s))
+	return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeSuccess, s))
 }
 
 func AdminDeleteSegment(c echo.Context) error {
@@ -105,17 +105,17 @@ func AdminDeleteSegment(c echo.Context) error {
 	)
 	if err := c.Bind(&req); err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to bind request")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-VAL-104", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
 	}
 	if req.ID == 0 {
 		helpers.ProcessLogger(c, svc, "ID cannot be zero", "Validation error")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-VAL-104", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
 	}
 
 	err := repositories.DeleteSegment(connections.DBconn(), req.ID)
 	if err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to delete segment")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-SYS-500", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrSys500, nil))
 	}
-	return c.JSON(http.StatusOK, helpers.BuildResponse("SUC-INT-000", map[string]any{"id": req.ID}))
+	return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeSuccess, map[string]any{"id": req.ID}))
 }

@@ -18,7 +18,7 @@ func TransactionHistory(c echo.Context) error {
 	claims, ok := helpers.GetClaims(c)
 	if !ok {
 		helpers.ProcessLogger(c, svc, "Failed to get claims", "Authorization error")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-AUTH-419", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrAuth419, nil))
 	}
 
 	var req models.RequestTransactions
@@ -36,10 +36,10 @@ func TransactionHistory(c echo.Context) error {
 	list, total, err := repositories.GetTransactionsListByMerchantID(db, claims.MerchantID, req.Search, req.Start, req.Length, req.Order, req.Sort, req.Filters)
 	if err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to get transaction list")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-SYS-500", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrSys500, nil))
 	}
 
-	return c.JSON(http.StatusOK, helpers.BuildResponse("SUC-INT-000", map[string]any{
+	return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeSuccess, map[string]any{
 		"draw":            req.Draw,
 		"recordsTotal":    total,
 		"recordsFiltered": total,

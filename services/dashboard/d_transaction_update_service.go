@@ -18,18 +18,18 @@ func AdminUpdateTransaction(c echo.Context) error {
 	)
 	if err := c.Bind(&input); err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to bind request")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-VAL-104", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
 	}
 	if input.ID == 0 {
 		helpers.ProcessLogger(c, svc, "ID cannot be zero", "Validation error")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-VAL-104", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
 	}
 
 	db := connections.DBconn()
 	t, err := repositories.GetTransactionByID(db, input.ID)
 	if err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Transaction not found")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-USER-404", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrUser404, nil))
 	}
 
 	t.StatusCode = input.StatusCode
@@ -39,7 +39,7 @@ func AdminUpdateTransaction(c echo.Context) error {
 	err = repositories.UpdateTransaction(db, t)
 	if err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to update transaction")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-SYS-500", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrSys500, nil))
 	}
-	return c.JSON(http.StatusOK, helpers.BuildResponse("SUC-USER-200", t))
+	return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeSucUser200, t))
 }

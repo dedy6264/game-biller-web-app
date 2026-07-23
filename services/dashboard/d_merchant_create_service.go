@@ -19,7 +19,7 @@ func AdminCreateMerchant(c echo.Context) error {
 	)
 	if err := c.Bind(&m); err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to bind request")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-VAL-104", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
 	}
 	if m.ApiCredential == nil && (m.ClientKey != "" || m.SecretKey != "" || m.WhitelistIPs != "") {
 		m.ApiCredential = &models.MerchantApiCredential{
@@ -66,8 +66,8 @@ func AdminCreateMerchant(c echo.Context) error {
 
 	if err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to create merchant")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-SYS-500", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrSys500, nil))
 	}
 
-	return c.JSON(http.StatusOK, helpers.BuildResponse("SUC-INT-000", m))
+	return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeSuccess, m))
 }

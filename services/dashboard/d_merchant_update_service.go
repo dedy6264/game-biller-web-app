@@ -19,7 +19,7 @@ func AdminUpdateMerchant(c echo.Context) error {
 	)
 	if err := c.Bind(&input); err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to bind request")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-VAL-104", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
 	}
 	if input.ApiCredential == nil && (input.ClientKey != "" || input.SecretKey != "" || input.WhitelistIPs != "") {
 		input.ApiCredential = &models.MerchantApiCredential{
@@ -31,14 +31,14 @@ func AdminUpdateMerchant(c echo.Context) error {
 	}
 	if input.ID == 0 {
 		helpers.ProcessLogger(c, svc, "ID cannot be zero", "Validation error")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-VAL-104", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
 	}
 
 	db := connections.DBconn()
 	m, err := repositories.GetMerchantByID(db, input.ID)
 	if err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Merchant not found")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-USER-404", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrUser404, nil))
 	}
 
 	m.MerchantName = input.MerchantName
@@ -104,7 +104,7 @@ func AdminUpdateMerchant(c echo.Context) error {
 
 	if err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to update merchant")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-SYS-500", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrSys500, nil))
 	}
-	return c.JSON(http.StatusOK, helpers.BuildResponse("SUC-USER-200", m))
+	return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeSucUser200, m))
 }

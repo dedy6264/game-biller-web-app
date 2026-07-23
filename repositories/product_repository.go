@@ -688,11 +688,11 @@ func GetProductProvidersList(exec QueryExecutor, start, length int, filters mode
 // === PRODUCT SEGMENTS REPOSITORY ===
 
 func CreateProductSegment(exec QueryExecutor, ps *models.ProductSegment) (int64, error) {
-	query := `INSERT INTO product_segments (segment_id, product_provider_id, segment_name, product_id, product_price, admin_fee, merchant_fee, provider_product_price, provider_product_admin_fee, provider_product_merchant_fee, created_at, created_by, updated_at, updated_by)
-	          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`
+	query := `INSERT INTO product_segments (segment_id, product_provider_id, segment_name, product_provider_code, product_provider_name, product_id, product_price, admin_fee, merchant_fee, provider_product_price, provider_product_admin_fee, provider_product_merchant_fee, created_at, created_by, updated_at, updated_by)
+	          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`
 	query = helpers.QuerySupport(query)
 	var id int64
-	err := exec.QueryRow(query, ps.SegmentID, ps.ProductProviderID, ps.SegmentName, ps.ProductID, ps.ProductPrice, ps.AdminFee, ps.MerchantFee, ps.ProviderProductPrice, ps.ProviderProductAdminFee, ps.ProviderProductMerchantFee, ps.CreatedAt, ps.CreatedBy, ps.UpdatedAt, ps.UpdatedBy).Scan(&id)
+	err := exec.QueryRow(query, ps.SegmentID, ps.ProductProviderID, ps.SegmentName, ps.ProductProviderCode, ps.ProductProviderName, ps.ProductID, ps.ProductPrice, ps.AdminFee, ps.MerchantFee, ps.ProviderProductPrice, ps.ProviderProductAdminFee, ps.ProviderProductMerchantFee, ps.CreatedAt, ps.CreatedBy, ps.UpdatedAt, ps.UpdatedBy).Scan(&id)
 	if err != nil {
 		return 0, err
 	}
@@ -701,9 +701,9 @@ func CreateProductSegment(exec QueryExecutor, ps *models.ProductSegment) (int64,
 }
 
 func GetProductSegmentByID(exec QueryExecutor, id int64) (*models.ProductSegment, error) {
-	query := `SELECT id, segment_id, product_provider_id, segment_name, product_id, product_price, admin_fee, merchant_fee, provider_product_price, provider_product_admin_fee, provider_product_merchant_fee, created_at, created_by, updated_at, updated_by FROM product_segments WHERE id = $1`
+	query := `SELECT id, segment_id, product_provider_id, segment_name, COALESCE(product_provider_code, ''), COALESCE(product_provider_name, ''), product_id, product_price, admin_fee, merchant_fee, provider_product_price, provider_product_admin_fee, provider_product_merchant_fee, created_at, created_by, updated_at, updated_by FROM product_segments WHERE id = $1`
 	var ps models.ProductSegment
-	err := exec.QueryRow(query, id).Scan(&ps.ID, &ps.SegmentID, &ps.ProductProviderID, &ps.SegmentName, &ps.ProductID, &ps.ProductPrice, &ps.AdminFee, &ps.MerchantFee, &ps.ProviderProductPrice, &ps.ProviderProductAdminFee, &ps.ProviderProductMerchantFee, &ps.CreatedAt, &ps.CreatedBy, &ps.UpdatedAt, &ps.UpdatedBy)
+	err := exec.QueryRow(query, id).Scan(&ps.ID, &ps.SegmentID, &ps.ProductProviderID, &ps.SegmentName, &ps.ProductProviderCode, &ps.ProductProviderName, &ps.ProductID, &ps.ProductPrice, &ps.AdminFee, &ps.MerchantFee, &ps.ProviderProductPrice, &ps.ProviderProductAdminFee, &ps.ProviderProductMerchantFee, &ps.CreatedAt, &ps.CreatedBy, &ps.UpdatedAt, &ps.UpdatedBy)
 	if err != nil {
 		return nil, err
 	}
@@ -711,12 +711,12 @@ func GetProductSegmentByID(exec QueryExecutor, id int64) (*models.ProductSegment
 }
 
 func GetProductSegmentByProductAndSegment(exec QueryExecutor, productID int64, segmentName string) (*models.ProductSegment, error) {
-	query := `SELECT id, segment_id, product_provider_id, segment_name, product_id, product_price, admin_fee, merchant_fee, provider_product_price, provider_product_admin_fee, provider_product_merchant_fee, created_at, created_by, updated_at, updated_by 
+	query := `SELECT id, segment_id, product_provider_id, segment_name, COALESCE(product_provider_code, ''), COALESCE(product_provider_name, ''), product_id, product_price, admin_fee, merchant_fee, provider_product_price, provider_product_admin_fee, provider_product_merchant_fee, created_at, created_by, updated_at, updated_by 
 	          FROM product_segments 
 	          WHERE product_id = $1 AND (segment_name = $2 OR segment_id = (SELECT id FROM segments WHERE segment_name = $2 LIMIT 1))
 	          LIMIT 1`
 	var ps models.ProductSegment
-	err := exec.QueryRow(query, productID, segmentName).Scan(&ps.ID, &ps.SegmentID, &ps.ProductProviderID, &ps.SegmentName, &ps.ProductID, &ps.ProductPrice, &ps.AdminFee, &ps.MerchantFee, &ps.ProviderProductPrice, &ps.ProviderProductAdminFee, &ps.ProviderProductMerchantFee, &ps.CreatedAt, &ps.CreatedBy, &ps.UpdatedAt, &ps.UpdatedBy)
+	err := exec.QueryRow(query, productID, segmentName).Scan(&ps.ID, &ps.SegmentID, &ps.ProductProviderID, &ps.SegmentName, &ps.ProductProviderCode, &ps.ProductProviderName, &ps.ProductID, &ps.ProductPrice, &ps.AdminFee, &ps.MerchantFee, &ps.ProviderProductPrice, &ps.ProviderProductAdminFee, &ps.ProviderProductMerchantFee, &ps.CreatedAt, &ps.CreatedBy, &ps.UpdatedAt, &ps.UpdatedBy)
 	if err != nil {
 		return nil, err
 	}
@@ -724,9 +724,9 @@ func GetProductSegmentByProductAndSegment(exec QueryExecutor, productID int64, s
 }
 
 func UpdateProductSegment(exec QueryExecutor, ps *models.ProductSegment) error {
-	query := `UPDATE product_segments SET segment_id = ?, product_provider_id = ?, segment_name = ?, product_id = ?, product_price = ?, admin_fee = ?, merchant_fee = ?, provider_product_price = ?, provider_product_admin_fee = ?, provider_product_merchant_fee = ?, updated_at = ?, updated_by = ? WHERE id = ?`
+	query := `UPDATE product_segments SET segment_id = ?, product_provider_id = ?, segment_name = ?, product_provider_code = ?, product_provider_name = ?, product_id = ?, product_price = ?, admin_fee = ?, merchant_fee = ?, provider_product_price = ?, provider_product_admin_fee = ?, provider_product_merchant_fee = ?, updated_at = ?, updated_by = ? WHERE id = ?`
 	query = helpers.QuerySupport(query)
-	_, err := exec.Exec(query, ps.SegmentID, ps.ProductProviderID, ps.SegmentName, ps.ProductID, ps.ProductPrice, ps.AdminFee, ps.MerchantFee, ps.ProviderProductPrice, ps.ProviderProductAdminFee, ps.ProviderProductMerchantFee, ps.UpdatedAt, ps.UpdatedBy, ps.ID)
+	_, err := exec.Exec(query, ps.SegmentID, ps.ProductProviderID, ps.SegmentName, ps.ProductProviderCode, ps.ProductProviderName, ps.ProductID, ps.ProductPrice, ps.AdminFee, ps.MerchantFee, ps.ProviderProductPrice, ps.ProviderProductAdminFee, ps.ProviderProductMerchantFee, ps.UpdatedAt, ps.UpdatedBy, ps.ID)
 	return err
 }
 
@@ -764,7 +764,7 @@ func GetProductSegmentsList(exec QueryExecutor, start, length int, filters model
 		return nil, 0, err
 	}
 
-	query := `SELECT ps.id, ps.segment_id, ps.product_provider_id, ps.segment_name, ps.product_id, ps.product_price, ps.admin_fee, ps.merchant_fee, ps.provider_product_price, ps.provider_product_admin_fee, ps.provider_product_merchant_fee, ps.created_at, ps.created_by, ps.updated_at, ps.updated_by, COALESCE(p.product_name, ''), COALESCE(p.product_code, ''), COALESCE(pprov.provider_product_code, ''), COALESCE(pprov.provider_price, 0.00), COALESCE(pprov.provider_admin_fee, 0.00), COALESCE(pprov.provider_merchant_fee, 0.00)
+	query := `SELECT ps.id, ps.segment_id, ps.product_provider_id, ps.segment_name, COALESCE(ps.product_provider_code, ''), COALESCE(ps.product_provider_name, ''), ps.product_id, ps.product_price, ps.admin_fee, ps.merchant_fee, ps.provider_product_price, ps.provider_product_admin_fee, ps.provider_product_merchant_fee, ps.created_at, ps.created_by, ps.updated_at, ps.updated_by, COALESCE(p.product_name, ''), COALESCE(p.product_code, ''), COALESCE(pprov.provider_product_code, ''), COALESCE(pprov.provider_price, 0.00), COALESCE(pprov.provider_admin_fee, 0.00), COALESCE(pprov.provider_merchant_fee, 0.00)
 	          FROM product_segments ps
 	          LEFT JOIN products p ON p.id = ps.product_id
 	          LEFT JOIN product_providers pprov ON pprov.id = ps.product_provider_id
@@ -783,7 +783,7 @@ func GetProductSegmentsList(exec QueryExecutor, start, length int, filters model
 	var list []models.ProductSegment
 	for rows.Next() {
 		var ps models.ProductSegment
-		err = rows.Scan(&ps.ID, &ps.SegmentID, &ps.ProductProviderID, &ps.SegmentName, &ps.ProductID, &ps.ProductPrice, &ps.AdminFee, &ps.MerchantFee, &ps.ProviderProductPrice, &ps.ProviderProductAdminFee, &ps.ProviderProductMerchantFee, &ps.CreatedAt, &ps.CreatedBy, &ps.UpdatedAt, &ps.UpdatedBy, &ps.ProductName, &ps.ProductCode, &ps.ProviderProductCode, &ps.ProviderPrice, &ps.ProviderAdminFee, &ps.ProviderMerchantFee)
+		err = rows.Scan(&ps.ID, &ps.SegmentID, &ps.ProductProviderID, &ps.SegmentName, &ps.ProductProviderCode, &ps.ProductProviderName, &ps.ProductID, &ps.ProductPrice, &ps.AdminFee, &ps.MerchantFee, &ps.ProviderProductPrice, &ps.ProviderProductAdminFee, &ps.ProviderProductMerchantFee, &ps.CreatedAt, &ps.CreatedBy, &ps.UpdatedAt, &ps.UpdatedBy, &ps.ProductName, &ps.ProductCode, &ps.ProviderProductCode, &ps.ProviderPrice, &ps.ProviderAdminFee, &ps.ProviderMerchantFee)
 		if err != nil {
 			return nil, 0, err
 		}
@@ -881,12 +881,17 @@ type ProductSegmentDetailResult struct {
 	ProviderProductAdminFee    float64
 	ProviderProductMerchantFee float64
 	ProductProviderID          *int64
+	ProductProviderCode        string
+	ProductProviderName        string
 	ProviderID                 int64
 	ProviderProductCode        string
 	ProviderPrice              float64
 	ProviderAdminFee           float64
 	ProviderMerchantFee        float64
 	ProviderIsAvailable        bool
+	SegmentName                string
+	ProviderName               string
+	ProductTypeName            string
 }
 
 // GetProductSegmentJoinProvider fetches product segment pricing joined with products and product_providers
@@ -910,14 +915,22 @@ func GetProductSegmentJoinProvider(exec QueryExecutor, segmentID int64, productC
 		p.product_type_id, 
 		p.product_category_id,
 		COALESCE(pp.provider_id, 0), 
+		COALESCE(ps.product_provider_code, pp.provider_product_code, ''),
+		COALESCE(ps.product_provider_name, ''),
 		COALESCE(pp.provider_product_code, ''),
 		COALESCE(pp.provider_price, 0), 
 		COALESCE(pp.provider_admin_fee, 0), 
 		COALESCE(pp.provider_merchant_fee, 0), 
-		COALESCE(pp.is_available, true)
+		COALESCE(pp.is_available, true),
+		COALESCE(psg.segment_name, ''),
+		COALESCE(prov.provider_name, ''),
+		COALESCE(pt.product_type_name, '')
 	FROM product_segments ps
 	JOIN products p ON ps.product_id = p.id
 	LEFT JOIN product_providers pp ON ps.product_provider_id = pp.id
+	LEFT JOIN segments psg ON psg.id = ps.segment_id
+	LEFT JOIN providers prov ON prov.id = pp.provider_id
+	LEFT JOIN product_types pt ON pt.id = p.product_type_id
 	WHERE ps.segment_id = $1 AND p.product_code = $2
 	LIMIT 1`
 	var res ProductSegmentDetailResult
@@ -939,11 +952,16 @@ func GetProductSegmentJoinProvider(exec QueryExecutor, segmentID int64, productC
 		&res.ProductTypeID,
 		&res.ProductCategoryID,
 		&res.ProviderID,
+		&res.ProductProviderCode,
+		&res.ProductProviderName,
 		&res.ProviderProductCode,
 		&res.ProviderPrice,
 		&res.ProviderAdminFee,
 		&res.ProviderMerchantFee,
 		&res.ProviderIsAvailable,
+		&res.SegmentName,
+		&res.ProviderName,
+		&res.ProductTypeName,
 	)
 	if err != nil {
 		return nil, err

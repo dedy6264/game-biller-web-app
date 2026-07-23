@@ -18,7 +18,7 @@ func GetReferenceProduct(c echo.Context) error {
 	list, _, err := repositories.GetProductReferencesList(db, "", 0, 0, "", "", models.ProductReferenceFilters{})
 	if err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to get product references")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-SYS-500", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrSys500, nil))
 	}
-	return c.JSON(http.StatusOK, helpers.BuildResponse("SUC-INT-000", list))
+	return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeSuccess, list))
 }

@@ -18,7 +18,7 @@ func AdminCreateUser(c echo.Context) error {
 	)
 	if err := c.Bind(&u); err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to bind request")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-VAL-104", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
 	}
 	now := time.Now().Format(time.RFC3339)
 	u.CreatedAt = now
@@ -28,11 +28,11 @@ func AdminCreateUser(c echo.Context) error {
 	db := connections.DBconn()
 	if _, err := repositories.GetUserByEmailOrPhone(db, u.Email); err == nil {
 		helpers.ProcessLogger(c, svc, "Email already exists", "Validation error")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("VAL-USER-422", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeValUser422, nil))
 	}
 	if _, err := repositories.GetUserByEmailOrPhone(db, u.PhoneNumber); err == nil {
 		helpers.ProcessLogger(c, svc, "Phone already exists", "Validation error")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("VAL-USER-423", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeValUser423, nil))
 	}
 
 	// default password hash if not provided
@@ -44,7 +44,7 @@ func AdminCreateUser(c echo.Context) error {
 	_, err := repositories.CreateUser(db, &u)
 	if err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to create user")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-SYS-500", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrSys500, nil))
 	}
-	return c.JSON(http.StatusOK, helpers.BuildResponse("SUC-AUTH-201", u))
+	return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeSucAuth201, u))
 }

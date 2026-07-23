@@ -1,19 +1,18 @@
-# Inquiry
-1. setelah simpan data inquiry ke database, validasi provider, jika provider_id = 1 (IAK), maka lanjutkan request ke 
-host: localhost:10003/api/iak/inquiry
-method : post
-payload : menggunakan models.RequestInquiry
-response : menggunakan models.InquiryResult
-
-2. handle response ketika sukses update data transaksi dengan data produk dan kelengkapannya di database dengan status inquiry sukses. dan update dengan status yang lain sesuai hasil dari worker
-
-# payment
-1. setelah validasi noreff dengan mengecek didatabase bahwa transaksi valid(inquiry sukses), lanjutkan validasi provider, jika provider_id = 1 (IAK), maka lanjutkan request ke 
-host: localhost:10003/api/iak/payment
-method : post
-payload : menggunakan models.RequestPayment
-response : menggunakan models.PaymentResult
-
-2. handle response ketika sukses update data transaksi dengan data produk dan kelengkapannya di database dengan status payment sukses.dan update dengan status yang lain sesuai hasil dari worker
-3. jika saat validasi noreff invalid (selain inquiry sukses) maka return transaksi dengan status iinvalid transaksi
-4. jika saat validasi noreff status transaksi payment sukses atau gagal, maka kembalikan informasi data sesuai pada di database
+# tambahkan field pada tabel transactions field berikut:
+    merchant_name
+    product_name
+    product_segment_name
+    product_provider_name
+    provider_name
+    product_type_name
+    payment_channel_name
+    product_merchant_fee
+    product_provider_admin_fee
+    product_provider_merchant_fee
+# ubah nama field berikut menjadi yang telah di deskripsikan
+    buy_price -> product_provider_price
+    sell_price -> product_price
+    admin_fee -> product_admin_fee
+    payment_fee -> payment_admin_fee
+    target_user_id -> customer_id
+# sesuaikan juga pada tabel lainnya yang berkaitan dengan tabel transactions

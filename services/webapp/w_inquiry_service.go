@@ -1,7 +1,6 @@
 package webapp
 
 import (
-	"bytes"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -9,7 +8,7 @@ import (
 	"gamebiller/helpers"
 	"gamebiller/models"
 	"gamebiller/repositories"
-	"io"
+	"gamebiller/utils"
 	"net/http"
 	"strconv"
 	"strings"
@@ -24,15 +23,12 @@ const ProviderIAK int64 = 1
 // IAK worker base URL
 const IakWorkerHost = "http://localhost:10003"
 
-// callIAKInquiry sends inquiry request to IAK worker
+// callIAKInquiry sends inquiry request to IAK worker using utils.WorkerRequestPOST
 func callIAKInquiry(payload models.RequestInquiry) (*models.InquiryResult, error) {
-	body, _ := json.Marshal(payload)
-	resp, err := http.Post(IakWorkerHost+"/api/iak/inquiry", "application/json", bytes.NewBuffer(body))
+	data, _, err := utils.WorkerRequestPOST("json", IakWorkerHost+"/api/iak/inquiry", payload, models.ReqHeader{}, 30*time.Second)
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
-	data, _ := io.ReadAll(resp.Body)
 	var result models.InquiryResult
 	if err := json.Unmarshal(data, &result); err != nil {
 		return nil, err
@@ -43,7 +39,8 @@ func callIAKInquiry(payload models.RequestInquiry) (*models.InquiryResult, error
 // === 7. INQUIRY ===
 func Inquiry(c echo.Context) error {
 	var (
-		svc = "Inquiry"
+		svc   = "Inquiry"
+		bytes []byte
 	)
 
 	// 1. Validasi kredensial pengguna (JWT)
@@ -100,20 +97,12 @@ func Inquiry(c echo.Context) error {
 	}
 
 	// 5. Fetch Payment Channel
-	channel, err := repositories.GetPaymentChannelByCodeSafe(db, req.PaymentChannelCode)
+	channel, err := repositories.GetPaymentChannelByCode(db, req.PaymentChannelCode)
 	if err != nil || !channel.IsActive {
-		helpers.ProcessLogger(c, svc, "Payment channel not found or inactive", "Validation error")
+		helpers.ProcessLogger(c, svc, "Payment channel invalid or inactive", "Validation error")
 		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
 	}
-
-	// Hitung payment fee
-	var paymentFee float64
-	if channel.FeeType == "FIXED" {
-		paymentFee = channel.FeeValue
-	} else if channel.FeeType == "PERCENTAGE" {
-		paymentFee = (channel.FeeValue / 100.0) * (psDetail.ProductPrice + psDetail.AdminFee)
-	}
-
+	paymentFee := channel.FeeValue
 	totalAmount := psDetail.ProductPrice + psDetail.AdminFee + paymentFee
 
 	// Resolve harga buy price dari provider
@@ -138,29 +127,67 @@ func Inquiry(c echo.Context) error {
 		refMerchant = &req.ReferenceNumberMerchant
 	}
 
+	var (
+		providerID *int64
+		typeID     *int64
+		refID      *int64
+	)
+	if psDetail.ProviderID > 0 {
+		providerID = &psDetail.ProviderID
+	}
+	if psDetail.ProductTypeID > 0 {
+		typeID = &psDetail.ProductTypeID
+	}
+	refID = psDetail.ProductReferenceID
+
+	if req.ZoneID != "" || req.ServerID != "" {
+		otherCustId := models.OtherCustomerID{
+			ZoneID:   req.ZoneID,
+			ServerID: req.ServerID,
+		}
+		bytes, _ = json.Marshal(otherCustId)
+
+	}
+	fmt.Println("====", string(bytes), ";", req.ZoneID, req.ServerID)
 	trx := models.Transaction{
-		MerchantID:              claims.MerchantID,
-		ProductID:               &psDetail.ProductID,
-		ProductSegmentID:        &psDetail.ProductSegmentID,
-		ProductProviderID:       psDetail.ProductProviderID,
-		PaymentChannelID:        &channel.ID,
-		SnapshotProductCode:     psDetail.ProductCode,
-		SnapshotProductName:     psDetail.ProductName,
-		BuyPrice:                buyPrice,
-		SellPrice:               psDetail.ProductPrice,
-		AdminFee:                psDetail.AdminFee,
-		PaymentFee:              paymentFee,
-		TotalAmount:             totalAmount,
-		TargetUserID:            req.TargetUserID,
-		ReferenceNumberInternal: refInternal,
-		ReferenceNumberMerchant: refMerchant,
-		StatusCode:              helpers.CodeIntrPending,
-		StatusMessage:           "PENDING_UPSTREAM",
-		RetryCount:              0,
-		CreatedAt:               now,
-		CreatedBy:               strconv.FormatInt(claims.UserID, 10),
-		UpdatedAt:               now,
-		UpdatedBy:               strconv.FormatInt(claims.UserID, 10),
+		MerchantID:                 claims.MerchantID,
+		ProductID:                  &psDetail.ProductID,
+		ProductSegmentID:           &psDetail.ProductSegmentID,
+		ProductProviderID:          psDetail.ProductProviderID,
+		ProviderID:                 providerID,
+		ProductTypeID:              typeID,
+		ProductReferenceID:         refID,
+		PaymentChannelID:           &channel.ID,
+		ProductCode:                psDetail.ProductCode,
+		SnapshotProductCode:        psDetail.ProductCode,
+		SnapshotProductName:        psDetail.ProductName,
+		MerchantName:               merchant.MerchantName,
+		ProductName:                psDetail.ProductName,
+		ProductSegmentName:         psDetail.SegmentName,
+		ProductProviderCode:        psDetail.ProductProviderCode,
+		ProductProviderName:        psDetail.ProductProviderName,
+		ProviderName:               psDetail.ProviderName,
+		ProductTypeName:            psDetail.ProductTypeName,
+		PaymentChannelName:         channel.ChannelName,
+		ProductProviderPrice:       buyPrice,
+		ProductPrice:               psDetail.ProductPrice,
+		ProductAdminFee:            psDetail.AdminFee,
+		ProductMerchantFee:         psDetail.MerchantFee,
+		ProductProviderAdminFee:    psDetail.ProviderProductAdminFee,
+		ProductProviderMerchantFee: psDetail.ProviderProductMerchantFee,
+		PaymentAdminFee:            paymentFee,
+		TotalAmount:                totalAmount,
+		CustomerID:                 req.TargetUserID,
+		OtherCustomerID:            string(bytes),
+		ReferenceNumberInternal:    refInternal,
+		ReferenceNumberMerchant:    refMerchant,
+		StatusCode:                 helpers.CodeIntrPending,
+		StatusMessage:              "PENDING_UPSTREAM",
+		RetryCount:                 0,
+		CreatedAt:                  now,
+		CreatedBy:                  strconv.FormatInt(claims.UserID, 10),
+		UpdatedAt:                  now,
+		UpdatedBy:                  strconv.FormatInt(claims.UserID, 10),
 	}
 
 	// 7. Simpan data transaksi (status: PENDING) menggunakan DB transaction
@@ -186,7 +213,7 @@ func Inquiry(c echo.Context) error {
 				ProviderID:         ProviderIAK,
 				ProductCategoryID:  psDetail.ProductCategoryID,
 				ProductTypeID:      psDetail.ProductTypeID,
-				ProductCode:        psDetail.ProductCode,
+				ProductCode:        psDetail.ProductProviderCode,
 				ProductReferenceID: refProductID,
 			},
 		}
@@ -202,10 +229,12 @@ func Inquiry(c echo.Context) error {
 				trx.StatusCode = helpers.CodeInqSuccess
 				trx.StatusMessage = "INQUIRY_SUCCESS"
 				if iakResult.DataTransaction.SerialNumber != "" {
-					trx.SerialNumber = &iakResult.DataTransaction.SerialNumber
+					sn := iakResult.DataTransaction.SerialNumber
+					trx.SerialNumber = &sn
 				}
 				if iakResult.ProviderRefID != "" {
-					trx.ReferenceNumberProvider = &iakResult.ProviderRefID
+					pref := iakResult.ProviderRefID
+					trx.ReferenceNumberProvider = &pref
 				}
 			} else {
 				trx.StatusCode = helpers.CodeInqSuccess
@@ -231,11 +260,11 @@ func Inquiry(c echo.Context) error {
 		"reference_number_internal": refInternal,
 		"product_code":              psDetail.ProductCode,
 		"product_name":              psDetail.ProductName,
-		"sell_price":                trx.SellPrice,
-		"admin_fee":                 trx.AdminFee,
-		"payment_fee":               trx.PaymentFee,
+		"sell_price":                trx.ProductPrice,
+		"admin_fee":                 trx.ProductAdminFee,
+		"payment_fee":               trx.PaymentAdminFee,
 		"total_amount":              trx.TotalAmount,
-		"target_user_id":            trx.TargetUserID,
+		"target_user_id":            trx.CustomerID,
 		"status":                    trx.StatusMessage,
 	}))
 }

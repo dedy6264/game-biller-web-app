@@ -47,7 +47,7 @@ func GetProductSegment(c echo.Context) error {
 
 	// if refCode == "" {
 	// 	helpers.ProcessLogger(c, svc, "Reference code is required", "Validation error")
-	// 	return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-VAL-104", nil))
+	// 	return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
 	// }
 
 	db := connections.DBconn()
@@ -70,7 +70,7 @@ func GetProductSegment(c echo.Context) error {
 
 	if err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to get product segments")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-SYS-500", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrSys500, nil))
 	}
-	return c.JSON(http.StatusOK, helpers.BuildResponse("SUC-INT-000", list))
+	return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeSuccess, list))
 }

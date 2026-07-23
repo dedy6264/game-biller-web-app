@@ -21,9 +21,9 @@ func AdminGetModelHasRoles(c echo.Context) error {
 	list, total, err := repositories.GetModelHasRolesList(connections.DBconn(), req.Start, req.Length, req.Filters)
 	if err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to retrieve model has roles list")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-SYS-500", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrSys500, nil))
 	}
-	return c.JSON(http.StatusOK, helpers.BuildResponse("SUC-INT-000", map[string]any{
+	return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeSuccess, map[string]any{
 		"draw":            req.Draw,
 		"recordsTotal":    total,
 		"recordsFiltered": total,
@@ -38,7 +38,7 @@ func AdminCreateModelHasRole(c echo.Context) error {
 	)
 	if err := c.Bind(&mhr); err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to bind request")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-VAL-104", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
 	}
 	now := time.Now().Format("2006-01-02T15:04:05Z07:00")
 	mhr.CreatedAt = now
@@ -47,9 +47,9 @@ func AdminCreateModelHasRole(c echo.Context) error {
 	_, err := repositories.CreateModelHasRole(connections.DBconn(), &mhr)
 	if err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to create model has role mapping")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-SYS-500", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrSys500, nil))
 	}
-	return c.JSON(http.StatusOK, helpers.BuildResponse("SUC-INT-000", mhr))
+	return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeSuccess, mhr))
 }
 
 func AdminUpdateModelHasRole(c echo.Context) error {
@@ -59,18 +59,18 @@ func AdminUpdateModelHasRole(c echo.Context) error {
 	)
 	if err := c.Bind(&input); err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to bind request")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-VAL-104", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
 	}
 	if input.ID == 0 {
 		helpers.ProcessLogger(c, svc, "ID cannot be zero", "Validation error")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-VAL-104", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
 	}
 
 	db := connections.DBconn()
 	existing, err := repositories.GetModelHasRoleByID(db, input.ID)
 	if err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "ModelHasRole mapping not found")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-USER-404", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrUser404, nil))
 	}
 
 	err = helpers.DBTransaction(db, func(tx *sql.Tx) error {
@@ -88,9 +88,9 @@ func AdminUpdateModelHasRole(c echo.Context) error {
 
 	if err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to update model has role mapping")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-SYS-500", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrSys500, nil))
 	}
-	return c.JSON(http.StatusOK, helpers.BuildResponse("SUC-INT-000", existing))
+	return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeSuccess, existing))
 }
 
 func AdminDeleteModelHasRole(c echo.Context) error {
@@ -102,17 +102,17 @@ func AdminDeleteModelHasRole(c echo.Context) error {
 	)
 	if err := c.Bind(&req); err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to bind request")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-VAL-104", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
 	}
 	if req.ID == 0 {
 		helpers.ProcessLogger(c, svc, "ID cannot be zero", "Validation error")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-VAL-104", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
 	}
 
 	err := repositories.DeleteModelHasRole(connections.DBconn(), req.ID)
 	if err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to delete model has role mapping")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-SYS-500", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrSys500, nil))
 	}
-	return c.JSON(http.StatusOK, helpers.BuildResponse("SUC-INT-000", map[string]any{"id": req.ID}))
+	return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeSuccess, map[string]any{"id": req.ID}))
 }

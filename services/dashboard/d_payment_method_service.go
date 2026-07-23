@@ -20,9 +20,9 @@ func AdminGetPaymentMethods(c echo.Context) error {
 	list, total, err := repositories.GetPaymentMethodsList(connections.DBconn(), req.Search, req.Start, req.Length, req.Order, req.Sort, req.Filters)
 	if err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to retrieve payment methods list")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-SYS-500", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrSys500, nil))
 	}
-	return c.JSON(http.StatusOK, helpers.BuildResponse("SUC-INT-000", map[string]any{
+	return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeSuccess, map[string]any{
 		"draw":            req.Draw,
 		"recordsTotal":    total,
 		"recordsFiltered": total,
@@ -37,7 +37,7 @@ func AdminCreatePaymentMethod(c echo.Context) error {
 	)
 	if err := c.Bind(&pm); err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to bind request")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-VAL-104", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
 	}
 	now := time.Now().Format("2006-01-02T15:04:05Z07:00")
 	pm.CreatedAt = now
@@ -48,9 +48,9 @@ func AdminCreatePaymentMethod(c echo.Context) error {
 	_, err := repositories.CreatePaymentMethod(connections.DBconn(), &pm)
 	if err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to create payment method")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-SYS-500", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrSys500, nil))
 	}
-	return c.JSON(http.StatusOK, helpers.BuildResponse("SUC-INT-000", pm))
+	return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeSuccess, pm))
 }
 
 func AdminUpdatePaymentMethod(c echo.Context) error {
@@ -60,18 +60,18 @@ func AdminUpdatePaymentMethod(c echo.Context) error {
 	)
 	if err := c.Bind(&input); err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to bind request")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-VAL-104", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
 	}
 	if input.ID == 0 {
 		helpers.ProcessLogger(c, svc, "ID cannot be zero", "Validation error")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-VAL-104", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
 	}
 
 	db := connections.DBconn()
 	pm, err := repositories.GetPaymentMethodByID(db, input.ID)
 	if err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Payment method not found")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-USER-404", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrUser404, nil))
 	}
 
 	pm.MethodCode = input.MethodCode
@@ -83,9 +83,9 @@ func AdminUpdatePaymentMethod(c echo.Context) error {
 	err = repositories.UpdatePaymentMethod(db, pm)
 	if err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to update payment method")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-SYS-500", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrSys500, nil))
 	}
-	return c.JSON(http.StatusOK, helpers.BuildResponse("SUC-INT-000", pm))
+	return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeSuccess, pm))
 }
 
 func AdminDeletePaymentMethod(c echo.Context) error {
@@ -97,17 +97,17 @@ func AdminDeletePaymentMethod(c echo.Context) error {
 	)
 	if err := c.Bind(&req); err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to bind request")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-VAL-104", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
 	}
 	if req.ID == 0 {
 		helpers.ProcessLogger(c, svc, "ID cannot be zero", "Validation error")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-VAL-104", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
 	}
 
 	err := repositories.DeletePaymentMethod(connections.DBconn(), req.ID)
 	if err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to delete payment method")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-SYS-500", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrSys500, nil))
 	}
-	return c.JSON(http.StatusOK, helpers.BuildResponse("SUC-INT-000", map[string]any{"id": req.ID}))
+	return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeSuccess, map[string]any{"id": req.ID}))
 }

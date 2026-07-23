@@ -19,12 +19,12 @@ func Register(c echo.Context) error {
 	)
 	if err := c.Bind(&req); err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to bind request")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-VAL-104", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
 	}
 
 	if len(req.Password) < 8 {
 		helpers.ProcessLogger(c, svc, "Password too short", "Validation error")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("VAL-USER-424", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeValUser424, nil))
 	}
 
 	db := connections.DBconn()
@@ -33,21 +33,21 @@ func Register(c echo.Context) error {
 	_, err := repositories.GetUserByEmailOrPhone(db, req.Email)
 	if err == nil {
 		helpers.ProcessLogger(c, svc, "Email already exists", "Validation error")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("VAL-USER-422", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeValUser422, nil))
 	}
 
 	// Check phone exist
 	_, err = repositories.GetUserByEmailOrPhone(db, req.PhoneNumber)
 	if err == nil {
 		helpers.ProcessLogger(c, svc, "Phone number already exists", "Validation error")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("VAL-USER-423", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeValUser423, nil))
 	}
 
 	// Hash password
 	hashed, err := helpers.HashPassword(req.Password)
 	if err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to hash password")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-SYS-500", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrSys500, nil))
 	}
 
 	// Lookup segment Public_Retail untuk auto-binding saat register
@@ -136,10 +136,10 @@ func Register(c echo.Context) error {
 
 	if err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Registration transaction failed")
-		return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-SYS-500", nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrSys500, nil))
 	}
 
-	return c.JSON(http.StatusOK, helpers.BuildResponse("SUC-AUTH-201", map[string]any{
+	return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeSucAuth201, map[string]any{
 		"user_id": userID,
 	}))
 }

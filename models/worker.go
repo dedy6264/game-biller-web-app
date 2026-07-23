@@ -7,10 +7,12 @@ type (
 		DataProduct DataProduct `json:"data_product"`
 	}
 	RequestPayment struct {
-		RefID         string      `json:"ref_id"`          // Reference ID dari Main Service
-		ProviderRefID string      `json:"provider_ref_id"` // Transaction ID / Invoice ID dari Provider
-		DataProduct   DataProduct `json:"data_product"`
-		BillDesc      string      `json:"bill_desc"` //kumpulan informasi terkait product format baku
+		RefID           string      `json:"ref_id"`          // Reference ID dari Main Service
+		ProviderRefID   string      `json:"provider_ref_id"` // Transaction ID / Invoice ID dari Provider
+		DataProduct     DataProduct `json:"data_product"`
+		CustomerID      string      `json:"customer_id"`
+		OtherCustomerID string      `json:"other_customer_id"`
+		BillDesc        string      `json:"bill_desc"` //kumpulan informasi terkait product format baku
 	}
 	DataProduct struct {
 		ProviderID         int64  `json:"provider_id"`
