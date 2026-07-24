@@ -3,6 +3,7 @@ package webapp
 import (
 	"database/sql"
 	"encoding/json"
+	"gamebiller/configs"
 	"gamebiller/connections"
 	"gamebiller/helpers"
 	"gamebiller/models"
@@ -17,7 +18,7 @@ import (
 
 // callIAKPayment sends payment request to IAK worker using utils.WorkerRequestPOST
 func callIAKPayment(payload models.RequestPayment) (*models.PaymentResult, error) {
-	data, _, err := utils.WorkerRequestPOST("json", IakWorkerHost+"/api/iak/payment", payload, models.ReqHeader{}, 30*time.Second)
+	data, _, err := utils.WorkerRequestPOST("json", configs.HOST_WORKER+configs.ENDPOINT_IAK_PAYMENT, payload, models.ReqHeader{}, 30*time.Second)
 	if err != nil {
 		return nil, err
 	}

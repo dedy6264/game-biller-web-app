@@ -24,16 +24,19 @@ func GetEnv(key string, value ...string) string {
 }
 
 var (
-	APP_PORT  = GetEnv("APP_PORT", "10002")
-	APP_KEY   = GetEnv("APP_KEY", "SomeSecretRandomKeyHereForJWTSigning")
-	APP_ENV   = GetEnv("APP_ENV", "DEV")
-	DB_DRIVER = GetEnv("DB_DRIVER", "postgres")
-	DB_HOST   = GetEnv("DB_HOST", "localhost")
-	DB_PORT   = GetEnv("DB_PORT", "5432")
-	DB_NAME   = GetEnv("DB_NAME", "game_biller")
-	DB_USER   = GetEnv("DB_USER", "postgres")
-	DB_PASS   = GetEnv("DB_PASS", "1234")
-	SSL_MODE  = GetEnv("SSL_MODE", "disable")
+	APP_PORT             = GetEnv("APP_PORT", "10002")
+	APP_KEY              = GetEnv("APP_KEY", "SomeSecretRandomKeyHereForJWTSigning")
+	APP_ENV              = GetEnv("APP_ENV", "DEV")
+	DB_DRIVER            = GetEnv("DB_DRIVER", "postgres")
+	DB_HOST              = GetEnv("DB_HOST", "localhost")
+	DB_PORT              = GetEnv("DB_PORT", "5432")
+	DB_NAME              = GetEnv("DB_NAME", "game_biller")
+	DB_USER              = GetEnv("DB_USER", "postgres")
+	DB_PASS              = GetEnv("DB_PASS", "1234")
+	SSL_MODE             = GetEnv("SSL_MODE", "disable")
+	HOST_WORKER          = GetEnv("HOST_WORKER")
+	ENDPOINT_IAK_PAYMENT = GetEnv("ENDPOINT_IAK_PAYMENT")
+	ENDPOINT_IAK_INQUIRY = GetEnv("ENDPOINT_IAK_INQUIRY")
 )
 
 func GetLocation() *time.Location {

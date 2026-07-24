@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"gamebiller/configs"
 	"gamebiller/connections"
 	"gamebiller/helpers"
 	"gamebiller/models"
@@ -20,12 +21,9 @@ import (
 // IAK provider ID
 const ProviderIAK int64 = 1
 
-// IAK worker base URL
-const IakWorkerHost = "http://localhost:10003"
-
 // callIAKInquiry sends inquiry request to IAK worker using utils.WorkerRequestPOST
 func callIAKInquiry(payload models.RequestInquiry) (*models.InquiryResult, error) {
-	data, _, err := utils.WorkerRequestPOST("json", IakWorkerHost+"/api/iak/inquiry", payload, models.ReqHeader{}, 30*time.Second)
+	data, _, err := utils.WorkerRequestPOST("json", configs.HOST_WORKER+configs.ENDPOINT_IAK_INQUIRY, payload, models.ReqHeader{}, 30*time.Second)
 	if err != nil {
 		return nil, err
 	}
