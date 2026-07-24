@@ -186,6 +186,7 @@ type ProductProvider struct {
 	ID                  int64   `json:"id"`
 	ProviderID          int64   `json:"provider_id"`
 	ProviderProductCode string  `json:"provider_product_code"`
+	ProviderProductName string  `json:"provider_product_name"`
 	ProviderPrice       float64 `json:"provider_price"`
 	ProviderAdminFee    float64 `json:"provider_admin_fee"`
 	ProviderMerchantFee float64 `json:"provider_merchant_fee"`
@@ -214,7 +215,7 @@ type ProductSegment struct {
 	ProductName                string  `json:"product_name,omitempty"`
 	ProductCode                string  `json:"product_code,omitempty"`
 	ProductProviderCode        string  `json:"product_provider_code,omitempty"`
-	ProductProviderName        string  `json:"product_provider_name,omitempty"`
+	ProviderProductName        string  `json:"provider_product_name,omitempty"`
 	ProviderProductCode        string  `json:"provider_product_code,omitempty"`
 	ProviderProductPrice       float64 `json:"provider_product_price"`
 	ProviderProductAdminFee    float64 `json:"provider_product_admin_fee"`
@@ -270,7 +271,7 @@ type Transaction struct {
 	ProductName                string  `json:"product_name"`
 	ProductSegmentName         string  `json:"product_segment_name"`
 	ProductProviderCode        string  `json:"product_provider_code"`
-	ProductProviderName        string  `json:"product_provider_name"`
+	ProviderProductName        string  `json:"provider_product_name"`
 	ProviderName               string  `json:"provider_name"`
 	ProductTypeName            string  `json:"product_type_name"`
 	PaymentChannelName         string  `json:"payment_channel_name"`
@@ -492,6 +493,7 @@ type ProductProviderFilters struct {
 	ID                  int64  `json:"id"`
 	ProviderID          int64  `json:"provider_id"`
 	ProviderProductCode string `json:"provider_product_code"`
+	ProviderProductName string `json:"provider_product_name"`
 }
 
 type RequestProductSegments struct {
@@ -562,7 +564,7 @@ type TransactionFilters struct {
 	ProductSegmentID        *int64  `json:"product_segment_id"`
 	ProductProviderID       *int64  `json:"product_provider_id"`
 	ProductProviderCode     string  `json:"product_provider_code"`
-	ProductProviderName     string  `json:"product_provider_name"`
+	ProviderProductName     string  `json:"provider_product_name"`
 	ProviderID              *int64  `json:"provider_id"`
 	ProductTypeID           *int64  `json:"product_type_id"`
 	ProductReferenceID      *int64  `json:"product_reference_id"`

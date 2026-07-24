@@ -235,6 +235,35 @@
 						}
 					},
 					"response": []
+				},
+				{
+					"name": "IAK Callback",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"data\": {\n        \"ref_id\": \"TRX-20260723212018-440698\",\n        \"status\": \"1\",\n        \"product_code\": \"hmobilelegend3\",\n        \"customer_id\": \"12345678|1234\",\n        \"price\": \"1100\",\n        \"message\": \"SUCCESS\",\n        \"balance\": \"83936260\",\n        \"tr_id\": \"394041920\",\n        \"rc\": \"00\",\n        \"sn\": \"98763345678-NAME\",\n        \"pin\": \"\",\n        \"sign\": \"e1bf7f68b22982b01ddf1bf5f9880dd5\"\n    }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/webapp/callback/iak",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"webapp",
+								"callback",
+								"iak"
+							]
+						}
+					},
+					"response": []
 				}
 			]
 		},
@@ -263,7 +292,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"product_code\": \"ML_86\",\n    \"target_user_id\": \"12345678(1234)\",\n    \"payment_channel_code\": \"BALANCE_INTERNAL\"\n}"
+							"raw": "{\n    \"product_code\": \"ML_86\",\n    \"target_user_id\": \"12345678\",\n    \"zone_id\": \"1234\",\n    \"server_id\": \"5678\",\n    \"other_customer_id\": \"{\\\"zone_id\\\":\\\"1234\\\",\\\"server_id\\\":\\\"5678\\\"}\",\n    \"payment_channel_code\": \"BALANCE_INTERNAL\",\n    \"reference_number_merchant\": \"REF-MERCH-001\"\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/api/webapp/inquiry",
@@ -910,7 +939,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n    \"draw\": 1,\n    \"search\": \"\",\n    \"start\": 0,\n    \"length\": 10,\n    \"sort\": \"desc\",\n    \"order\": \"id\",\n    \"filters\": {\n        \"id\": 0,\n        \"merchant_id\": 0,\n        \"product_id\": 0,\n        \"product_segment_id\": 0,\n        \"product_provider_id\": 0,\n        \"payment_channel_id\": 0,\n        \"status_code\": \"\",\n        \"reference_number_internal\": \"\",\n        \"reference_number_merchant\": \"\",\n        \"start_date\": \"\",\n        \"end_date\": \"\"\n    }\n}"
+									"raw": "{\n    \"draw\": 1,\n    \"search\": \"\",\n    \"start\": 0,\n    \"length\": 10,\n    \"sort\": \"desc\",\n    \"order\": \"id\",\n    \"filters\": {\n        \"id\": 0,\n        \"merchant_id\": 0,\n        \"product_id\": 0,\n        \"product_segment_id\": 0,\n        \"product_provider_id\": 0,\n        \"product_provider_code\": \"\",\n        \"provider_product_name\": \"\",\n        \"payment_channel_id\": 0,\n        \"customer_id\": \"\",\n        \"other_customer_id\": \"\",\n        \"status_code\": \"\",\n        \"reference_number_internal\": \"\",\n        \"reference_number_merchant\": \"\",\n        \"start_date\": \"\",\n        \"end_date\": \"\"\n    }\n}"
 								},
 								"url": {
 									"raw": "{{base_url}}/api/dashboard/transactions/list",
@@ -2037,7 +2066,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n    \"draw\": 1,\n    \"start\": 0,\n    \"length\": 10,\n    \"filters\": {\n        \"id\": 0,\n        \"provider_id\": 0,\n        \"provider_product_code\": \"\"\n    }\n}"
+									"raw": "{\n    \"draw\": 1,\n    \"start\": 0,\n    \"length\": 10,\n    \"filters\": {\n        \"id\": 0,\n        \"provider_id\": 0,\n        \"provider_product_code\": \"\",\n        \"provider_product_name\": \"\"\n    }\n}"
 								},
 								"url": {
 									"raw": "{{base_url}}/api/dashboard/product-providers/list",
@@ -2076,7 +2105,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n    \"provider_id\": 1,\n    \"provider_product_code\": \"prov_code_123\",\n    \"provider_price\": 12000,\n    \"provider_admin_fee\": 500,\n    \"provider_merchant_fee\": 300,\n    \"provider_index\": 1,\n    \"is_available\": true\n}"
+									"raw": "{\n    \"provider_id\": 1,\n    \"provider_product_code\": \"prov_code_123\",\n    \"provider_product_name\": \"Steam Wallet IDR 6,000\",\n    \"provider_price\": 12000,\n    \"provider_admin_fee\": 500,\n    \"provider_merchant_fee\": 300,\n    \"provider_index\": 1,\n    \"is_available\": true\n}"
 								},
 								"url": {
 									"raw": "{{base_url}}/api/dashboard/product-providers/create",
@@ -2115,7 +2144,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n    \"id\": 1,\n    \"provider_id\": 1,\n    \"provider_product_code\": \"prov_code_123_updated\",\n    \"provider_price\": 12500,\n    \"provider_admin_fee\": 500,\n    \"provider_merchant_fee\": 300,\n    \"provider_index\": 1,\n    \"is_available\": true\n}"
+									"raw": "{\n    \"id\": 1,\n    \"provider_id\": 1,\n    \"provider_product_code\": \"prov_code_123_updated\",\n    \"provider_product_name\": \"Steam Wallet IDR 6,000 Updated\",\n    \"provider_price\": 12500,\n    \"provider_admin_fee\": 500,\n    \"provider_merchant_fee\": 300,\n    \"provider_index\": 1,\n    \"is_available\": true\n}"
 								},
 								"url": {
 									"raw": "{{base_url}}/api/dashboard/product-providers/update",
@@ -2237,7 +2266,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n    \"segment_id\": 1,\n    \"product_provider_id\": 1,\n    \"segment_name\": \"Premium Gamers\",\n    \"product_id\": 1,\n    \"product_price\": 13500,\n    \"admin_fee\": 1000,\n    \"merchant_fee\": 500,\n    \"provider_product_price\": 12000,\n    \"provider_product_admin_fee\": 500,\n    \"provider_product_merchant_fee\": 300\n}"
+									"raw": "{\n    \"segment_id\": 1,\n    \"product_provider_id\": 1,\n    \"segment_name\": \"Premium Gamers\",\n    \"product_provider_code\": \"IAK_ML_86\",\n    \"provider_product_name\": \"IAK Mobile Legends 86 Diamonds\",\n    \"product_id\": 1,\n    \"product_price\": 13500,\n    \"admin_fee\": 1000,\n    \"merchant_fee\": 500,\n    \"provider_product_price\": 12000,\n    \"provider_product_admin_fee\": 500,\n    \"provider_product_merchant_fee\": 300\n}"
 								},
 								"url": {
 									"raw": "{{base_url}}/api/dashboard/product-segments/create",
@@ -2276,7 +2305,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n    \"id\": 1,\n    \"segment_id\": 1,\n    \"product_provider_id\": 1,\n    \"segment_name\": \"Premium Gamers Updated\",\n    \"product_id\": 1,\n    \"product_price\": 13800,\n    \"admin_fee\": 1000,\n    \"merchant_fee\": 500,\n    \"provider_product_price\": 12200,\n    \"provider_product_admin_fee\": 500,\n    \"provider_product_merchant_fee\": 300\n}"
+									"raw": "{\n    \"id\": 1,\n    \"segment_id\": 1,\n    \"product_provider_id\": 1,\n    \"segment_name\": \"Premium Gamers Updated\",\n    \"product_provider_code\": \"IAK_ML_86\",\n    \"provider_product_name\": \"IAK Mobile Legends 86 Diamonds\",\n    \"product_id\": 1,\n    \"product_price\": 13800,\n    \"admin_fee\": 1000,\n    \"merchant_fee\": 500,\n    \"provider_product_price\": 12200,\n    \"provider_product_admin_fee\": 500,\n    \"provider_product_merchant_fee\": 300\n}"
 								},
 								"url": {
 									"raw": "{{base_url}}/api/dashboard/product-segments/update",
@@ -2823,7 +2852,7 @@
 	"variable": [
 		{
 			"key": "base_url",
-			"value": "http://localhost:10002",
+			"value": "http://202.10.34.181:10002",
 			"type": "string"
 		},
 		{

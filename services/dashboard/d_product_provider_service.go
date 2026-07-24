@@ -76,6 +76,7 @@ func AdminUpdateProductProvider(c echo.Context) error {
 
 	pp.ProviderID = input.ProviderID
 	pp.ProviderProductCode = input.ProviderProductCode
+	pp.ProviderProductName = input.ProviderProductName
 	pp.ProviderPrice = input.ProviderPrice
 	pp.ProviderAdminFee = input.ProviderAdminFee
 	pp.ProviderMerchantFee = input.ProviderMerchantFee

@@ -163,7 +163,7 @@ func Inquiry(c echo.Context) error {
 		ProductName:                psDetail.ProductName,
 		ProductSegmentName:         psDetail.SegmentName,
 		ProductProviderCode:        psDetail.ProductProviderCode,
-		ProductProviderName:        psDetail.ProductProviderName,
+		ProviderProductName:        psDetail.ProviderProductName,
 		ProviderName:               psDetail.ProviderName,
 		ProductTypeName:            psDetail.ProductTypeName,
 		PaymentChannelName:         channel.ChannelName,
