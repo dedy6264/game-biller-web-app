@@ -59,3 +59,22 @@ type (
 		ProcessedAt     string           `json:"processed_at"`
 	}
 )
+
+type IAKCallbackData struct {
+	RefID       string `json:"ref_id"`
+	Status      string `json:"status"`
+	ProductCode string `json:"product_code"`
+	CustomerID  string `json:"customer_id"`
+	Price       string `json:"price"`
+	Message     string `json:"message"`
+	Balance     string `json:"balance"`
+	TrID        string `json:"tr_id"`
+	RC          string `json:"rc"`
+	SN          string `json:"sn"`
+	PIN         string `json:"pin"`
+	Sign        string `json:"sign"`
+}
+
+type IAKCallbackPayload struct {
+	Data IAKCallbackData `json:"data"`
+}

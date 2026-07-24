@@ -73,6 +73,27 @@ func GetTransactionByRefInternal(exec QueryExecutor, refInternal string) (*model
 	return &t, nil
 }
 
+func GetTransactionByRefProvider(exec QueryExecutor, refProvider string) (*models.Transaction, error) {
+	query := `SELECT id, merchant_id, product_id, product_segment_id, product_provider_id, provider_id, product_type_id, product_reference_id, payment_channel_id, 
+	                 COALESCE(product_code, ''), COALESCE(snapshot_product_code, ''), COALESCE(snapshot_product_name, ''), 
+	                 COALESCE(merchant_name, ''), COALESCE(product_name, ''), COALESCE(product_segment_name, ''), COALESCE(product_provider_code, ''), COALESCE(product_provider_name, ''), COALESCE(provider_name, ''), COALESCE(product_type_name, ''), COALESCE(payment_channel_name, ''),
+	                 product_provider_price, product_price, product_admin_fee, COALESCE(product_merchant_fee, 0), COALESCE(product_provider_admin_fee, 0), COALESCE(product_provider_merchant_fee, 0), payment_admin_fee, total_amount, 
+	                 COALESCE(customer_id, ''), COALESCE(other_customer_id, ''), reference_number_internal, reference_number_merchant, reference_number_provider, serial_number, 
+	                 status_code, status_message, retry_count, created_at, created_by, updated_at, updated_by 
+	          FROM transactions WHERE reference_number_provider = $1`
+	var t models.Transaction
+	err := exec.QueryRow(query, refProvider).Scan(&t.ID, &t.MerchantID, &t.ProductID, &t.ProductSegmentID, &t.ProductProviderID, &t.ProviderID, &t.ProductTypeID, &t.ProductReferenceID, &t.PaymentChannelID,
+		&t.ProductCode, &t.SnapshotProductCode, &t.SnapshotProductName,
+		&t.MerchantName, &t.ProductName, &t.ProductSegmentName, &t.ProductProviderCode, &t.ProductProviderName, &t.ProviderName, &t.ProductTypeName, &t.PaymentChannelName,
+		&t.ProductProviderPrice, &t.ProductPrice, &t.ProductAdminFee, &t.ProductMerchantFee, &t.ProductProviderAdminFee, &t.ProductProviderMerchantFee, &t.PaymentAdminFee, &t.TotalAmount,
+		&t.CustomerID, &t.OtherCustomerID, &t.ReferenceNumberInternal, &t.ReferenceNumberMerchant, &t.ReferenceNumberProvider, &t.SerialNumber,
+		&t.StatusCode, &t.StatusMessage, &t.RetryCount, &t.CreatedAt, &t.CreatedBy, &t.UpdatedAt, &t.UpdatedBy)
+	if err != nil {
+		return nil, err
+	}
+	return &t, nil
+}
+
 func UpdateTransaction(exec QueryExecutor, t *models.Transaction) error {
 	query := `UPDATE transactions SET merchant_id = ?, product_id = ?, product_segment_id = ?, product_provider_id = ?, provider_id = ?, product_type_id = ?, product_reference_id = ?, payment_channel_id = ?, 
 	                                 product_code = ?, snapshot_product_code = ?, snapshot_product_name = ?, merchant_name = ?, product_name = ?, product_segment_name = ?, product_provider_code = ?, product_provider_name = ?, provider_name = ?, product_type_name = ?, payment_channel_name = ?,

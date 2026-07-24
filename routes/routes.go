@@ -37,6 +37,7 @@ func publicWebApp(a *echo.Group) {
 	a.POST("/product-segments/customer", webapp.GetProductSegmentByCustomer)
 	a.POST("/popular-products", webapp.GetPopularProduct)
 	a.POST("/payment-methods", webapp.GetPaymentMethod)
+	a.POST("/callback/iak", webapp.IAKCallback)
 }
 func privateWebApp(a *echo.Group) {
 	// Private
