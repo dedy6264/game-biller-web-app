@@ -37,11 +37,11 @@ func callIAKInquiry(payload models.RequestInquiry) (*models.InquiryResult, error
 // === 7. INQUIRY ===
 func Inquiry(c echo.Context) error {
 	var (
-		svc         = "Inquiry"
-		bytes       []byte
-		db          = connections.DBconn()
-		totalAmount float64
-		segmentID   int64
+		svc                                                                           = "Inquiry"
+		bytes                                                                         []byte
+		db                                                                            = connections.DBconn()
+		totalAmount, paymentFee, providerPrice, providerMerchantFee, providerAdminFee float64
+		segmentID                                                                     int64
 	)
 
 	// 1. Validasi kredensial pengguna (JWT)
@@ -100,26 +100,23 @@ func Inquiry(c echo.Context) error {
 		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
 	}
 
-	paymentFee := channel.FeeValue
-	totalAmount = productSegment.ProductPrice + productSegment.AdminFee + paymentFee
+	paymentFee = channel.FeeValue
+	//sementara pembeda baku berdasar prepaid/postpaid
+	// if productSegment.ProductTypeID == 1 { //prepaid
+	// 	totalAmount = productSegment.ProductPrice + productSegment.AdminFee + paymentFee
+	// } else {
+	// 	totalAmount = productSegment.ProductPrice + productSegment.AdminFee + paymentFee
+	// }
 
 	// Resolve harga buy price dari provider
-	providerPrice := productSegment.ProductProviderPrice
-	providerMerchantFee := productSegment.ProductProviderMerchantFee
-	if providerPrice == 0 {
-		providerPrice = productSegment.ProductPrice * 0.95
-	}
-	buyPrice := providerPrice + providerMerchantFee
+	providerPrice = productSegment.ProductProviderPrice
+	providerMerchantFee = productSegment.ProductProviderMerchantFee
+	providerAdminFee = productSegment.ProductProviderAdminFee
 
 	// 6. Generate reference number internal & construct Transaction
 	nowStr := time.Now().Format("20060102150405")
 	refInternal := fmt.Sprintf("TRX-%s-%s", nowStr, helpers.RandomDigits(6))
 	now := time.Now().Format(time.RFC3339)
-
-	var refMerchant string
-	if req.ReferenceNumberMerchant != "" {
-		refMerchant = req.ReferenceNumberMerchant
-	}
 
 	if req.ZoneID != "" || req.ServerID != "" {
 		otherCustId := models.OtherCustomerID{
@@ -130,45 +127,52 @@ func Inquiry(c echo.Context) error {
 
 	}
 	trx := models.Transaction{
+		ReferenceNumberInternal: refInternal,
+		ReferenceNumberMerchant: req.ReferenceNumberMerchant,
+
 		MerchantID:         claims.MerchantID,
+		MerchantName:       merchant.MerchantName,
 		ProductSegmentID:   productSegment.ProductSegmentID,
 		ProviderID:         productSegment.ProviderID,
+		ProviderName:       productSegment.ProviderName,
 		ProductTypeID:      productSegment.ProductTypeID,
+		ProductTypeName:    productSegment.ProductTypeName,
 		ProductReferenceID: productSegment.ProductReferenceID,
-		MerchantName:       merchant.MerchantName,
 
 		ProductProviderID:          productSegment.ProductProviderID,
-		ProductID:                  productSegment.ProductID,
-		PaymentChannelID:           1,
-		ProductCode:                productSegment.ProductCode,
-		SnapshotProductCode:        productSegment.ProductCode,
-		SnapshotProductName:        productSegment.ProductName,
-		ProductName:                productSegment.ProductName,
-		ProductSegmentName:         productSegment.SegmentName,
-		ProductProviderCode:        productSegment.ProductProviderCode,
 		ProductProviderName:        productSegment.ProductProviderName,
-		ProviderName:               productSegment.ProviderName,
-		ProductTypeName:            productSegment.ProductTypeName,
-		PaymentChannelName:         "",
-		ProductProviderPrice:       buyPrice,
-		ProductPrice:               productSegment.ProductPrice,
-		ProductAdminFee:            productSegment.AdminFee,
-		ProductMerchantFee:         productSegment.MerchantFee,
+		ProductProviderCode:        productSegment.ProductProviderCode,
+		ProductProviderPrice:       productSegment.ProductProviderPrice,
 		ProductProviderAdminFee:    productSegment.ProductProviderAdminFee,
 		ProductProviderMerchantFee: productSegment.ProductProviderMerchantFee,
-		PaymentAdminFee:            0,
-		TotalAmount:                totalAmount,
-		CustomerID:                 req.TargetUserID,
-		OtherCustomerID:            string(bytes),
-		ReferenceNumberInternal:    refInternal,
-		ReferenceNumberMerchant:    refMerchant,
-		StatusCode:                 "", //belum memiliki status atau inquiry proccess
-		StatusMessage:              "INQUIRY_PROCCESS",
-		RetryCount:                 0,
-		CreatedAt:                  now,
-		CreatedBy:                  strconv.FormatInt(claims.UserID, 10),
-		UpdatedAt:                  now,
-		UpdatedBy:                  strconv.FormatInt(claims.UserID, 10),
+
+		ProductID:          productSegment.ProductID,
+		ProductName:        productSegment.ProductName,
+		ProductCode:        productSegment.ProductCode,
+		ProductPrice:       productSegment.ProductPrice,
+		ProductAdminFee:    productSegment.AdminFee,
+		ProductMerchantFee: productSegment.MerchantFee,
+
+		PaymentChannelID:   channel.ID,
+		PaymentChannelName: channel.ChannelName,
+		PaymentAdminFee:    paymentFee,
+
+		SnapshotProductCode: productSegment.ProductCode,
+		SnapshotProductName: productSegment.ProductName,
+		ProductSegmentName:  productSegment.SegmentName,
+
+		TotalAmount: totalAmount,
+
+		CustomerID:      req.TargetUserID,
+		OtherCustomerID: string(bytes),
+
+		StatusCode:    "", //belum memiliki status atau inquiry proccess
+		StatusMessage: "INQUIRY_PROCCESS",
+		RetryCount:    0,
+		CreatedAt:     now,
+		CreatedBy:     strconv.FormatInt(claims.UserID, 10),
+		UpdatedAt:     now,
+		UpdatedBy:     strconv.FormatInt(claims.UserID, 10),
 	}
 
 	// 7. Simpan data transaksi (status: PENDING) menggunakan DB transaction
