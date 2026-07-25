@@ -64,7 +64,7 @@ type OtpCode struct {
 type Merchant struct {
 	ID            int64                  `json:"id"`
 	UserID        int64                  `json:"user_id"`
-	SegmentID     *int64                 `json:"segment_id"`
+	SegmentID     int64                  `json:"segment_id"`
 	MerchantName  string                 `json:"merchant_name"`
 	MerchantType  string                 `json:"merchant_type"` // guest_retail, member_premium, h2h_api
 	Status        string                 `json:"status"`

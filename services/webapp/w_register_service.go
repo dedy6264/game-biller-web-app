@@ -51,10 +51,10 @@ func Register(c echo.Context) error {
 	}
 
 	// Lookup segment Public_Retail untuk auto-binding saat register
-	var publicRetailSegmentID *int64
+	var publicRetailSegmentID int64
 	seg, err := repositories.GetSegmentByName(db, "Public_Retail")
 	if err == nil {
-		publicRetailSegmentID = &seg.ID
+		publicRetailSegmentID = seg.ID
 	} else {
 		helpers.ProcessLogger(c, svc, err.Error(), "Public_Retail segment not found, proceeding without segment binding")
 	}

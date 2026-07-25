@@ -37,11 +37,11 @@ func callIAKInquiry(payload models.RequestInquiry) (*models.InquiryResult, error
 // === 7. INQUIRY ===
 func Inquiry(c echo.Context) error {
 	var (
-		svc                                                                           = "Inquiry"
-		bytes                                                                         []byte
-		db                                                                            = connections.DBconn()
-		totalAmount, paymentFee, providerPrice, providerMerchantFee, providerAdminFee float64
-		segmentID                                                                     int64
+		svc                     = "Inquiry"
+		bytes                   []byte
+		db                      = connections.DBconn()
+		totalAmount, paymentFee float64 //, providerPrice, providerMerchantFee, providerAdminFee float64
+		segmentID               int64
 	)
 
 	// 1. Validasi kredensial pengguna (JWT)
@@ -69,12 +69,12 @@ func Inquiry(c echo.Context) error {
 		helpers.ProcessLogger(c, svc, "Failed to get merchant or merchant inactive", "Validation error")
 		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrInt201, nil))
 	}
-
-	if merchant.SegmentID != nil && *merchant.SegmentID != 0 {
-		segmentID = *merchant.SegmentID
+	if merchant.SegmentID != 0 {
+		segmentID = merchant.SegmentID
 	} else {
 		segmentID = 1
 	}
+	fmt.Println(":::", merchant.SegmentID, "|", segmentID)
 
 	// 4. Get product segment JOIN product provider by segment_id dan product_code
 	productSegment, err := repositories.GetProductSegmentJoinProvider(db, segmentID, req.ProductCode)
@@ -101,17 +101,11 @@ func Inquiry(c echo.Context) error {
 	}
 
 	paymentFee = channel.FeeValue
-	//sementara pembeda baku berdasar prepaid/postpaid
-	// if productSegment.ProductTypeID == 1 { //prepaid
-	// 	totalAmount = productSegment.ProductPrice + productSegment.AdminFee + paymentFee
-	// } else {
-	// 	totalAmount = productSegment.ProductPrice + productSegment.AdminFee + paymentFee
-	// }
 
 	// Resolve harga buy price dari provider
-	providerPrice = productSegment.ProductProviderPrice
-	providerMerchantFee = productSegment.ProductProviderMerchantFee
-	providerAdminFee = productSegment.ProductProviderAdminFee
+	// providerPrice = productSegment.ProductProviderPrice
+	// providerMerchantFee = productSegment.ProductProviderMerchantFee
+	// providerAdminFee = productSegment.ProductProviderAdminFee
 
 	// 6. Generate reference number internal & construct Transaction
 	nowStr := time.Now().Format("20060102150405")
@@ -175,7 +169,6 @@ func Inquiry(c echo.Context) error {
 		UpdatedBy:     strconv.FormatInt(claims.UserID, 10),
 	}
 
-	// 7. Simpan data transaksi (status: PENDING) menggunakan DB transaction
 	err = helpers.DBTransaction(db, func(tx *sql.Tx) error {
 		_, err := repositories.CreateTransaction(tx, &trx)
 		return err
@@ -223,10 +216,26 @@ func Inquiry(c echo.Context) error {
 				trx.StatusCode = helpers.CodeInqSuccess
 				trx.StatusMessage = iakResult.ProviderDetail.Message
 			}
+			//sementara pembeda baku berdasar prepaid/postpaid
+			if productSegment.ProductTypeID == 1 { //prepaid
+				totalAmount = productSegment.ProductPrice + iakResult.DataTransaction.AdminFee + paymentFee
+			} else {
+				totalAmount = iakResult.DataTransaction.Price + iakResult.DataTransaction.AdminFee + paymentFee
+			}
+			trx.ProductProviderPrice = iakResult.DataTransaction.Price
+			// 			ProductProviderPrice:       productSegment.ProductProviderPrice,
+			trx.ProductProviderAdminFee = iakResult.DataTransaction.AdminFee
+			// 		ProductProviderAdminFee:    productSegment.ProductProviderAdminFee,
+			trx.ProductProviderMerchantFee = iakResult.DataTransaction.MerchantFee
+			// 		ProductProviderMerchantFee: productSegment.ProductProviderMerchantFee,
+			trx.TotalAmount = totalAmount
+			// TotalAmount: totalAmount,
 
-			_ = helpers.DBTransaction(db, func(tx *sql.Tx) error {
-				return repositories.UpdateTransaction(tx, &trx)
-			})
+			trx.CustomerID = iakResult.DataTransaction.CustomerID
+			// 		OtherCustomerID: string(bytes),
+			// _ = helpers.DBTransaction(db, func(tx *sql.Tx) error {
+			// 	return repositories.UpdateTransaction(tx, &trx)
+			// })
 		}
 	} else {
 		// Provider bukan IAK — langsung set inquiry success
@@ -234,11 +243,16 @@ func Inquiry(c echo.Context) error {
 		trx.StatusMessage = "INQUIRY_SUCCESS"
 		trx.UpdatedAt = time.Now().Format(time.RFC3339)
 		trx.UpdatedBy = strconv.FormatInt(claims.UserID, 10)
-		_ = helpers.DBTransaction(db, func(tx *sql.Tx) error {
-			return repositories.UpdateTransaction(tx, &trx)
-		})
-	}
 
+	}
+	err = helpers.DBTransaction(db, func(tx *sql.Tx) error {
+		return repositories.UpdateTransaction(tx, &trx)
+	})
+	if err != nil {
+		helpers.ProcessLogger(c, svc, err.Error(), "Failed to update transaction")
+		trx.StatusCode = helpers.CodeErrSys500
+		// return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrSys500, nil))
+	}
 	return c.JSON(http.StatusOK, helpers.BuildResponse(trx.StatusCode, map[string]any{
 		"reference_number_internal": refInternal,
 		"product_code":              productSegment.ProductCode,
