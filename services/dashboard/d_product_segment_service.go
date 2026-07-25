@@ -45,7 +45,22 @@ func AdminCreateProductSegment(c echo.Context) error {
 	ps.CreatedBy = "admin"
 	ps.UpdatedBy = "admin"
 
-	_, err := repositories.CreateProductSegment(connections.DBconn(), &ps)
+	db := connections.DBconn()
+	if ps.ProductName == "" && ps.ProductID != 0 {
+		if prod, err := repositories.GetProductByID(db, ps.ProductID); err == nil {
+			ps.ProductName = prod.ProductName
+		}
+	}
+	if ps.ProviderName == "" && ps.ProductProviderID != nil && *ps.ProductProviderID != 0 {
+		if pprov, err := repositories.GetProductProviderByID(db, *ps.ProductProviderID); err == nil {
+			if pprov.ProviderName != "" {
+				ps.ProviderName = pprov.ProviderName
+			} else if prov, err := repositories.GetProviderByID(db, pprov.ProviderID); err == nil {
+				ps.ProviderName = prov.ProviderName
+			}
+		}
+	}
+	_, err := repositories.CreateProductSegment(db, &ps)
 	if err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to create product segment")
 		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrSys500, nil))
@@ -78,12 +93,30 @@ func AdminUpdateProductSegment(c echo.Context) error {
 	ps.SegmentID = input.SegmentID
 	ps.ProductProviderID = input.ProductProviderID
 	ps.ProductID = input.ProductID
+	ps.ProductName = input.ProductName
+	ps.ProviderName = input.ProviderName
+	if ps.ProductName == "" && ps.ProductID != 0 {
+		if prod, err := repositories.GetProductByID(db, ps.ProductID); err == nil {
+			ps.ProductName = prod.ProductName
+		}
+	}
+	if ps.ProviderName == "" && ps.ProductProviderID != nil && *ps.ProductProviderID != 0 {
+		if pprov, err := repositories.GetProductProviderByID(db, *ps.ProductProviderID); err == nil {
+			if pprov.ProviderName != "" {
+				ps.ProviderName = pprov.ProviderName
+			} else if prov, err := repositories.GetProviderByID(db, pprov.ProviderID); err == nil {
+				ps.ProviderName = prov.ProviderName
+			}
+		}
+	}
 	ps.ProductPrice = input.ProductPrice
 	ps.AdminFee = input.AdminFee
 	ps.MerchantFee = input.MerchantFee
-	ps.ProviderProductPrice = input.ProviderProductPrice
-	ps.ProviderProductAdminFee = input.ProviderProductAdminFee
-	ps.ProviderProductMerchantFee = input.ProviderProductMerchantFee
+	ps.ProductProviderCode = input.ProductProviderCode
+	ps.ProductProviderName = input.ProductProviderName
+	ps.ProductProviderPrice = input.ProductProviderPrice
+	ps.ProductProviderAdminFee = input.ProductProviderAdminFee
+	ps.ProductProviderMerchantFee = input.ProductProviderMerchantFee
 	ps.UpdatedAt = time.Now().Format("2006-01-02T15:04:05Z07:00")
 	ps.UpdatedBy = "admin"
 

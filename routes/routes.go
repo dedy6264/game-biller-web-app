@@ -184,22 +184,19 @@ func AppRoutes(e *echo.Echo) {
 				Writer:         mw,                  // The multi-writer stream
 			}
 			c.Response().Writer = writer
-
 			// Defer the response logging until after next(c) executes
 			defer func() {
 				resHeaderBytes, _ := json.Marshal(c.Response().Header())
 				log.Println("Response Headers :: ", string(resHeaderBytes))
 				log.Println("Response Body :: ", resBodyBuffer.String())
 			}()
-
 			return next(c)
 		}
 	})
-
 	// Helper struct to intercept the response stream
-
 	// 1. UTILS ROUTES
 	utilsGroup := e.Group("/api/utils")
+
 	utils(utilsGroup)
 
 	// JWT Config
@@ -215,17 +212,16 @@ func AppRoutes(e *echo.Echo) {
 
 	// 2. WEBAPP ROUTES
 	webappGroup := e.Group("/api/webapp")
+
 	publicWebApp(webappGroup)
 
 	// Authenticated (JWT)
 	webappAuthGroup := e.Group("/api/webapp")
 	privateWebApp(webappAuthGroup)
-
 	// 3. DASHBOARD ROUTES
 	dashboardGroup := e.Group("/api/dashboard")
 	// Public Login
 	dashboardGroup.POST("/login", dashboard.AdminLogin)
-
 	// Authenticated Admin (JWT + Role validation)
 	dashboardAuthGroup := e.Group("/api/dashboard")
 	dashboardRoutes(dashboardAuthGroup)

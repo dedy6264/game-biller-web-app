@@ -2105,7 +2105,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n    \"provider_id\": 1,\n    \"provider_product_code\": \"prov_code_123\",\n    \"provider_product_name\": \"Steam Wallet IDR 6,000\",\n    \"provider_price\": 12000,\n    \"provider_admin_fee\": 500,\n    \"provider_merchant_fee\": 300,\n    \"provider_index\": 1,\n    \"is_available\": true\n}"
+									"raw": "{\n    \"provider_id\": 1,\n    \"product_provider_code\": \"prov_code_123\",\n    \"product_provider_name\": \"Steam Wallet IDR 6,000\",\n    \"product_provider_price\": 12000,\n    \"product_provider_admin_fee\": 500,\n    \"product_provider_merchant_fee\": 300,\n    \"provider_index\": 1,\n    \"is_available\": true\n}"
 								},
 								"url": {
 									"raw": "{{base_url}}/api/dashboard/product-providers/create",
@@ -2144,7 +2144,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n    \"id\": 1,\n    \"provider_id\": 1,\n    \"provider_product_code\": \"prov_code_123_updated\",\n    \"provider_product_name\": \"Steam Wallet IDR 6,000 Updated\",\n    \"provider_price\": 12500,\n    \"provider_admin_fee\": 500,\n    \"provider_merchant_fee\": 300,\n    \"provider_index\": 1,\n    \"is_available\": true\n}"
+									"raw": "{\n    \"id\": 1,\n    \"provider_id\": 1,\n    \"product_provider_code\": \"prov_code_123_updated\",\n    \"product_provider_name\": \"Steam Wallet IDR 6,000 Updated\",\n    \"product_provider_price\": 12500,\n    \"product_provider_admin_fee\": 500,\n    \"product_provider_merchant_fee\": 300,\n    \"provider_index\": 1,\n    \"is_available\": true\n}"
 								},
 								"url": {
 									"raw": "{{base_url}}/api/dashboard/product-providers/update",

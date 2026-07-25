@@ -183,20 +183,20 @@ type Product struct {
 }
 
 type ProductProvider struct {
-	ID                  int64   `json:"id"`
-	ProviderID          int64   `json:"provider_id"`
-	ProviderProductCode string  `json:"provider_product_code"`
-	ProviderProductName string  `json:"provider_product_name"`
-	ProviderPrice       float64 `json:"provider_price"`
-	ProviderAdminFee    float64 `json:"provider_admin_fee"`
-	ProviderMerchantFee float64 `json:"provider_merchant_fee"`
-	ProviderIndex       int     `json:"provider_index"`
-	IsAvailable         bool    `json:"is_available"`
-	CreatedAt           string  `json:"created_at"`
-	CreatedBy           string  `json:"created_by"`
-	UpdatedAt           string  `json:"updated_at"`
-	UpdatedBy           string  `json:"updated_by"`
-	ProviderName        string  `json:"provider_name,omitempty"`
+	ID                         int64   `json:"id"`
+	ProviderID                 int64   `json:"provider_id"`
+	ProviderName               string  `json:"provider_name"`
+	ProductProviderCode        string  `json:"product_provider_code"`
+	ProductProviderName        string  `json:"product_provider_name"`
+	ProductProviderPrice       float64 `json:"product_provider_price"`
+	ProductProviderAdminFee    float64 `json:"product_provider_admin_fee"`
+	ProductProviderMerchantFee float64 `json:"product_provider_merchant_fee"`
+	ProviderIndex              int     `json:"provider_index"`
+	IsAvailable                bool    `json:"is_available"`
+	CreatedAt                  string  `json:"created_at"`
+	CreatedBy                  string  `json:"created_by"`
+	UpdatedAt                  string  `json:"updated_at"`
+	UpdatedBy                  string  `json:"updated_by"`
 }
 
 type ProductSegment struct {
@@ -205,24 +205,21 @@ type ProductSegment struct {
 	ProductProviderID          *int64  `json:"product_provider_id,omitempty"`
 	SegmentName                string  `json:"segment_name"` // Public_Retail, Gold_Reseller, H2H_Partner
 	ProductID                  int64   `json:"product_id"`
+	ProductName                string  `json:"product_name"`
+	ProviderName               string  `json:"provider_name"`
 	ProductPrice               float64 `json:"product_price"`
 	AdminFee                   float64 `json:"admin_fee"`
 	MerchantFee                float64 `json:"merchant_fee"`
+	ProductProviderCode        string  `json:"product_provider_code,omitempty"`
+	ProductProviderName        string  `json:"product_provider_name,omitempty"`
+	ProductProviderPrice       float64 `json:"product_provider_price"`
+	ProductProviderAdminFee    float64 `json:"product_provider_admin_fee"`
+	ProductProviderMerchantFee float64 `json:"product_provider_merchant_fee"`
 	CreatedAt                  string  `json:"created_at"`
 	CreatedBy                  string  `json:"created_by"`
 	UpdatedAt                  string  `json:"updated_at"`
 	UpdatedBy                  string  `json:"updated_by"`
-	ProductName                string  `json:"product_name,omitempty"`
 	ProductCode                string  `json:"product_code,omitempty"`
-	ProductProviderCode        string  `json:"product_provider_code,omitempty"`
-	ProviderProductName        string  `json:"provider_product_name,omitempty"`
-	ProviderProductCode        string  `json:"provider_product_code,omitempty"`
-	ProviderProductPrice       float64 `json:"provider_product_price"`
-	ProviderProductAdminFee    float64 `json:"provider_product_admin_fee"`
-	ProviderProductMerchantFee float64 `json:"provider_product_merchant_fee"`
-	ProviderPrice              float64 `json:"provider_price"`
-	ProviderAdminFee           float64 `json:"provider_admin_fee"`
-	ProviderMerchantFee        float64 `json:"provider_merchant_fee"`
 }
 
 // 5. PAYMENT METHOD GATEWAY
@@ -257,13 +254,13 @@ type PaymentChannel struct {
 type Transaction struct {
 	ID                         int64   `json:"id"`
 	MerchantID                 int64   `json:"merchant_id"`
-	ProductID                  *int64  `json:"product_id,omitempty"`
-	ProductSegmentID           *int64  `json:"product_segment_id,omitempty"`
-	ProductProviderID          *int64  `json:"product_provider_id,omitempty"`
-	ProviderID                 *int64  `json:"provider_id,omitempty"`
-	ProductTypeID              *int64  `json:"product_type_id,omitempty"`
-	ProductReferenceID         *int64  `json:"product_reference_id,omitempty"`
-	PaymentChannelID           *int64  `json:"payment_channel_id,omitempty"`
+	ProductID                  int64   `json:"product_id"`
+	ProductSegmentID           int64   `json:"product_segment_id"`
+	ProductProviderID          int64   `json:"product_provider_id"`
+	ProviderID                 int64   `json:"provider_id"`
+	ProductTypeID              int64   `json:"product_type_id"`
+	ProductReferenceID         int64   `json:"product_reference_id"`
+	PaymentChannelID           int64   `json:"payment_channel_id"`
 	ProductCode                string  `json:"product_code"`
 	SnapshotProductCode        string  `json:"snapshot_product_code"`
 	SnapshotProductName        string  `json:"snapshot_product_name"`
@@ -271,7 +268,7 @@ type Transaction struct {
 	ProductName                string  `json:"product_name"`
 	ProductSegmentName         string  `json:"product_segment_name"`
 	ProductProviderCode        string  `json:"product_provider_code"`
-	ProviderProductName        string  `json:"provider_product_name"`
+	ProductProviderName        string  `json:"product_provider_name"`
 	ProviderName               string  `json:"provider_name"`
 	ProductTypeName            string  `json:"product_type_name"`
 	PaymentChannelName         string  `json:"payment_channel_name"`
@@ -284,11 +281,11 @@ type Transaction struct {
 	PaymentAdminFee            float64 `json:"payment_admin_fee"`
 	TotalAmount                float64 `json:"total_amount"`
 	CustomerID                 string  `json:"customer_id"`
-	OtherCustomerID            string  `json:"other_customer_id,omitempty"`
+	OtherCustomerID            string  `json:"other_customer_id"`
 	ReferenceNumberInternal    string  `json:"reference_number_internal"`
-	ReferenceNumberMerchant    *string `json:"reference_number_merchant,omitempty"`
-	ReferenceNumberProvider    *string `json:"reference_number_provider,omitempty"`
-	SerialNumber               *string `json:"serial_number,omitempty"`
+	ReferenceNumberMerchant    string  `json:"reference_number_merchant"`
+	ReferenceNumberProvider    string  `json:"reference_number_provider"`
+	SerialNumber               string  `json:"serial_number"`
 	StatusCode                 string  `json:"status_code"`
 	StatusMessage              string  `json:"status_message"`
 	RetryCount                 int     `json:"retry_count"`
@@ -327,7 +324,7 @@ type InquiryRequest struct {
 	ReferenceNumberMerchant string `json:"reference_number_merchant"`
 	ZoneID                  string `json:"zone_id"`
 	ServerID                string `json:"server_id"`
-	OtherCustomerID         string `json:"other_customer_id"`
+	// OtherCustomerID         string `json:"other_customer_id"`
 }
 type OtherCustomerID struct {
 	ZoneID   string `json:"zone_id"`
@@ -492,8 +489,8 @@ type RequestProductProviders struct {
 type ProductProviderFilters struct {
 	ID                  int64  `json:"id"`
 	ProviderID          int64  `json:"provider_id"`
-	ProviderProductCode string `json:"provider_product_code"`
-	ProviderProductName string `json:"provider_product_name"`
+	ProductProviderCode string `json:"product_provider_code"`
+	ProductProviderName string `json:"product_provider_name"`
 }
 
 type RequestProductSegments struct {
@@ -564,7 +561,7 @@ type TransactionFilters struct {
 	ProductSegmentID        *int64  `json:"product_segment_id"`
 	ProductProviderID       *int64  `json:"product_provider_id"`
 	ProductProviderCode     string  `json:"product_provider_code"`
-	ProviderProductName     string  `json:"provider_product_name"`
+	ProductProviderName     string  `json:"product_provider_name"`
 	ProviderID              *int64  `json:"provider_id"`
 	ProductTypeID           *int64  `json:"product_type_id"`
 	ProductReferenceID      *int64  `json:"product_reference_id"`

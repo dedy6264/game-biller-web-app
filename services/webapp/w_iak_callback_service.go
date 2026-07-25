@@ -66,10 +66,10 @@ func IAKCallback(c echo.Context) error {
 	}
 
 	if data.TrID != "" {
-		trx.ReferenceNumberProvider = &data.TrID
+		trx.ReferenceNumberProvider = data.TrID
 	}
 	if data.SN != "" {
-		trx.SerialNumber = &data.SN
+		trx.SerialNumber = data.SN
 	}
 	now := time.Now().Format(time.RFC3339)
 	trx.UpdatedAt = now

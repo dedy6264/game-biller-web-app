@@ -157,23 +157,13 @@ func Payment(c echo.Context) error {
 	trx.UpdatedAt = now
 	trx.UpdatedBy = strconv.FormatInt(claims.UserID, 10)
 
-	if trx.ProviderID != nil && *trx.ProviderID == ProviderIAK {
+	if trx.ProviderID == ProviderIAK {
 		// Siapkan bill_desc dari data yang tersimpan di transaksi
 		billDesc := trx.SnapshotProductName + " - " + trx.CustomerID
 
-		provRef := ""
-		if trx.ReferenceNumberProvider != nil {
-			provRef = *trx.ReferenceNumberProvider
-		}
-
-		typeID := int64(0)
-		if trx.ProductTypeID != nil {
-			typeID = *trx.ProductTypeID
-		}
-		refID := int64(0)
-		if trx.ProductReferenceID != nil {
-			refID = *trx.ProductReferenceID
-		}
+		provRef := trx.ReferenceNumberProvider
+		typeID := trx.ProductTypeID
+		refID := trx.ProductReferenceID
 
 		iakReq := models.RequestPayment{
 			RefID:           trx.ReferenceNumberInternal,
@@ -182,7 +172,7 @@ func Payment(c echo.Context) error {
 			CustomerID:      trx.CustomerID,
 			OtherCustomerID: trx.OtherCustomerID,
 			DataProduct: models.DataProduct{
-				ProviderID:         *trx.ProviderID,
+				ProviderID:         trx.ProviderID,
 				ProductTypeID:      typeID,
 				ProductCode:        trx.ProductProviderCode,
 				ProductReferenceID: refID,
@@ -200,12 +190,10 @@ func Payment(c echo.Context) error {
 				trx.StatusMessage = "PAYMENT_SUCCESS"
 				// Update data hasil worker ke transaksi
 				if iakResult.DataTransaction.SerialNumber != "" {
-					sn := iakResult.DataTransaction.SerialNumber
-					trx.SerialNumber = &sn
+					trx.SerialNumber = iakResult.DataTransaction.SerialNumber
 				}
 				if iakResult.ProviderRefID != "" {
-					pref := iakResult.ProviderRefID
-					trx.ReferenceNumberProvider = &pref
+					trx.ReferenceNumberProvider = iakResult.ProviderRefID
 				}
 			} else {
 				trx.StatusCode = helpers.CodeIntrPending
@@ -214,12 +202,10 @@ func Payment(c echo.Context) error {
 		}
 	} else {
 		// Provider bukan IAK — langsung set payment success
-		serialNum := "SN-" + helpers.RandomDigits(16)
-		providerRef := "PVD-" + helpers.RandomDigits(12)
 		trx.StatusCode = helpers.CodeSuccess
 		trx.StatusMessage = "PAYMENT_SUCCESS"
-		trx.SerialNumber = &serialNum
-		trx.ReferenceNumberProvider = &providerRef
+		trx.SerialNumber = "SN-" + helpers.RandomDigits(16)
+		trx.ReferenceNumberProvider = "PVD-" + helpers.RandomDigits(12)
 	}
 
 	// 7. Update status transaksi di DB

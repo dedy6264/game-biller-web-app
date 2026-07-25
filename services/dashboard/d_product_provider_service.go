@@ -45,6 +45,11 @@ func AdminCreateProductProvider(c echo.Context) error {
 	pp.CreatedBy = "admin"
 	pp.UpdatedBy = "admin"
 
+	if pp.ProviderName == "" && pp.ProviderID != 0 {
+		if prov, err := repositories.GetProviderByID(connections.DBconn(), pp.ProviderID); err == nil {
+			pp.ProviderName = prov.ProviderName
+		}
+	}
 	_, err := repositories.CreateProductProvider(connections.DBconn(), &pp)
 	if err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to create product provider")
@@ -75,11 +80,17 @@ func AdminUpdateProductProvider(c echo.Context) error {
 	}
 
 	pp.ProviderID = input.ProviderID
-	pp.ProviderProductCode = input.ProviderProductCode
-	pp.ProviderProductName = input.ProviderProductName
-	pp.ProviderPrice = input.ProviderPrice
-	pp.ProviderAdminFee = input.ProviderAdminFee
-	pp.ProviderMerchantFee = input.ProviderMerchantFee
+	pp.ProviderName = input.ProviderName
+	if pp.ProviderName == "" && pp.ProviderID != 0 {
+		if prov, err := repositories.GetProviderByID(db, pp.ProviderID); err == nil {
+			pp.ProviderName = prov.ProviderName
+		}
+	}
+	pp.ProductProviderCode = input.ProductProviderCode
+	pp.ProductProviderName = input.ProductProviderName
+	pp.ProductProviderPrice = input.ProductProviderPrice
+	pp.ProductProviderAdminFee = input.ProductProviderAdminFee
+	pp.ProductProviderMerchantFee = input.ProductProviderMerchantFee
 	pp.ProviderIndex = input.ProviderIndex
 	pp.IsAvailable = input.IsAvailable
 	pp.UpdatedAt = time.Now().Format("2006-01-02T15:04:05Z07:00")
