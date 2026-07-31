@@ -132,7 +132,7 @@ func Payment(c echo.Context) error {
 				LastBalance:     sa.Balance,
 				ReferenceNumber: trx.ReferenceNumberInternal,
 				TransactionCode: "GAME_TOPUP",
-				Description:     "Game Top Up: " + trx.SnapshotProductName,
+				Description:     "Game Top Up: " + trx.ProductName,
 				CreatedAt:       now,
 				CreatedBy:       strconv.FormatInt(claims.UserID, 10),
 			}
@@ -206,8 +206,8 @@ func Payment(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, helpers.BuildResponse(trx.StatusCode, map[string]any{
 		"reference_number_internal": trx.ReferenceNumberInternal,
-		"product_code":              trx.SnapshotProductCode,
-		"product_name":              trx.SnapshotProductName,
+		"product_code":              trx.ProductCode,
+		"product_name":              trx.ProductName,
 		"total_amount":              trx.TotalAmount,
 		"target_user_id":            trx.CustomerID,
 		"serial_number":             trx.SerialNumber,

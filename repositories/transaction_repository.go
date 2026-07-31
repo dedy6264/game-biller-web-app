@@ -12,15 +12,15 @@ import (
 
 func CreateTransaction(exec QueryExecutor, t *models.Transaction) (int64, error) {
 	query := `INSERT INTO transactions (merchant_id, product_id, product_segment_id, product_provider_id, provider_id, product_type_id, product_reference_id, payment_channel_id, 
-	                                  product_code, snapshot_product_code, snapshot_product_name, merchant_name, product_name, product_segment_name, product_provider_code, product_provider_name, provider_name, product_type_name, payment_channel_name,
+	                                  product_code,  merchant_name, product_name, product_segment_name, product_provider_code, product_provider_name, provider_name, product_type_name, payment_channel_name,
 	                                  product_provider_price, product_price, product_admin_fee, product_merchant_fee, product_provider_admin_fee, product_provider_merchant_fee, payment_admin_fee, total_amount, 
 	                                  customer_id, other_customer_id, reference_number_internal, reference_number_merchant, reference_number_provider, serial_number, 
 	                                  status_code, status_message, retry_count, created_at, created_by, updated_at, updated_by)
-	          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`
+	          VALUES (?, ?, ?, ?, ?, ?, ?, ?,  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`
 	query = helpers.QuerySupport(query)
 	var id int64
 	err := exec.QueryRow(query, t.MerchantID, t.ProductID, t.ProductSegmentID, t.ProductProviderID, t.ProviderID, t.ProductTypeID, t.ProductReferenceID, t.PaymentChannelID,
-		t.ProductCode, t.SnapshotProductCode, t.SnapshotProductName, t.MerchantName, t.ProductName, t.ProductSegmentName, t.ProductProviderCode, t.ProductProviderName, t.ProviderName, t.ProductTypeName, t.PaymentChannelName,
+		t.ProductCode, t.MerchantName, t.ProductName, t.ProductSegmentName, t.ProductProviderCode, t.ProductProviderName, t.ProviderName, t.ProductTypeName, t.PaymentChannelName,
 		t.ProductProviderPrice, t.ProductPrice, t.ProductAdminFee, t.ProductMerchantFee, t.ProductProviderAdminFee, t.ProductProviderMerchantFee, t.PaymentAdminFee, t.TotalAmount,
 		t.CustomerID, t.OtherCustomerID, t.ReferenceNumberInternal, t.ReferenceNumberMerchant, t.ReferenceNumberProvider, t.SerialNumber,
 		t.StatusCode, t.StatusMessage, t.RetryCount, t.CreatedAt, t.CreatedBy, t.UpdatedAt, t.UpdatedBy).Scan(&id)
@@ -33,7 +33,7 @@ func CreateTransaction(exec QueryExecutor, t *models.Transaction) (int64, error)
 
 func GetTransactionByID(exec QueryExecutor, id int64) (*models.Transaction, error) {
 	query := `SELECT id, merchant_id, product_id, product_segment_id, product_provider_id, provider_id, product_type_id, product_reference_id, payment_channel_id, 
-	                 COALESCE(product_code, ''), COALESCE(snapshot_product_code, ''), COALESCE(snapshot_product_name, ''), 
+	                 COALESCE(product_code, ''),
 	                 COALESCE(merchant_name, ''), COALESCE(product_name, ''), COALESCE(product_segment_name, ''), COALESCE(product_provider_code, ''), COALESCE(product_provider_name, ''), COALESCE(provider_name, ''), COALESCE(product_type_name, ''), COALESCE(payment_channel_name, ''),
 	                 product_provider_price, product_price, product_admin_fee, COALESCE(product_merchant_fee, 0), COALESCE(product_provider_admin_fee, 0), COALESCE(product_provider_merchant_fee, 0), payment_admin_fee, total_amount, 
 	                 COALESCE(customer_id, ''), COALESCE(other_customer_id, ''), reference_number_internal, reference_number_merchant, reference_number_provider, serial_number, 
@@ -41,7 +41,7 @@ func GetTransactionByID(exec QueryExecutor, id int64) (*models.Transaction, erro
 	          FROM transactions WHERE id = $1`
 	var t models.Transaction
 	err := exec.QueryRow(query, id).Scan(&t.ID, &t.MerchantID, &t.ProductID, &t.ProductSegmentID, &t.ProductProviderID, &t.ProviderID, &t.ProductTypeID, &t.ProductReferenceID, &t.PaymentChannelID,
-		&t.ProductCode, &t.SnapshotProductCode, &t.SnapshotProductName,
+		&t.ProductCode,
 		&t.MerchantName, &t.ProductName, &t.ProductSegmentName, &t.ProductProviderCode, &t.ProductProviderName, &t.ProviderName, &t.ProductTypeName, &t.PaymentChannelName,
 		&t.ProductProviderPrice, &t.ProductPrice, &t.ProductAdminFee, &t.ProductMerchantFee, &t.ProductProviderAdminFee, &t.ProductProviderMerchantFee, &t.PaymentAdminFee, &t.TotalAmount,
 		&t.CustomerID, &t.OtherCustomerID, &t.ReferenceNumberInternal, &t.ReferenceNumberMerchant, &t.ReferenceNumberProvider, &t.SerialNumber,
@@ -54,7 +54,7 @@ func GetTransactionByID(exec QueryExecutor, id int64) (*models.Transaction, erro
 
 func GetTransactionByRefInternal(exec QueryExecutor, refInternal string) (*models.Transaction, error) {
 	query := `SELECT id, merchant_id, product_id, product_segment_id, product_provider_id, provider_id, product_type_id, product_reference_id, payment_channel_id, 
-	                 COALESCE(product_code, ''), COALESCE(snapshot_product_code, ''), COALESCE(snapshot_product_name, ''), 
+	                 COALESCE(product_code, ''), 
 	                 COALESCE(merchant_name, ''), COALESCE(product_name, ''), COALESCE(product_segment_name, ''), COALESCE(product_provider_code, ''), COALESCE(product_provider_name, ''), COALESCE(provider_name, ''), COALESCE(product_type_name, ''), COALESCE(payment_channel_name, ''),
 	                 product_provider_price, product_price, product_admin_fee, COALESCE(product_merchant_fee, 0), COALESCE(product_provider_admin_fee, 0), COALESCE(product_provider_merchant_fee, 0), payment_admin_fee, total_amount, 
 	                 COALESCE(customer_id, ''), COALESCE(other_customer_id, ''), reference_number_internal, reference_number_merchant, reference_number_provider, serial_number, 
@@ -62,7 +62,7 @@ func GetTransactionByRefInternal(exec QueryExecutor, refInternal string) (*model
 	          FROM transactions WHERE reference_number_internal = $1`
 	var t models.Transaction
 	err := exec.QueryRow(query, refInternal).Scan(&t.ID, &t.MerchantID, &t.ProductID, &t.ProductSegmentID, &t.ProductProviderID, &t.ProviderID, &t.ProductTypeID, &t.ProductReferenceID, &t.PaymentChannelID,
-		&t.ProductCode, &t.SnapshotProductCode, &t.SnapshotProductName,
+		&t.ProductCode,
 		&t.MerchantName, &t.ProductName, &t.ProductSegmentName, &t.ProductProviderCode, &t.ProductProviderName, &t.ProviderName, &t.ProductTypeName, &t.PaymentChannelName,
 		&t.ProductProviderPrice, &t.ProductPrice, &t.ProductAdminFee, &t.ProductMerchantFee, &t.ProductProviderAdminFee, &t.ProductProviderMerchantFee, &t.PaymentAdminFee, &t.TotalAmount,
 		&t.CustomerID, &t.OtherCustomerID, &t.ReferenceNumberInternal, &t.ReferenceNumberMerchant, &t.ReferenceNumberProvider, &t.SerialNumber,
@@ -75,7 +75,7 @@ func GetTransactionByRefInternal(exec QueryExecutor, refInternal string) (*model
 
 func GetTransactionByRefProvider(exec QueryExecutor, refProvider string) (*models.Transaction, error) {
 	query := `SELECT id, merchant_id, product_id, product_segment_id, product_provider_id, provider_id, product_type_id, product_reference_id, payment_channel_id, 
-	                 COALESCE(product_code, ''), COALESCE(snapshot_product_code, ''), COALESCE(snapshot_product_name, ''), 
+	                 COALESCE(product_code, ''),  
 	                 COALESCE(merchant_name, ''), COALESCE(product_name, ''), COALESCE(product_segment_name, ''), COALESCE(product_provider_code, ''), COALESCE(product_provider_name, ''), COALESCE(provider_name, ''), COALESCE(product_type_name, ''), COALESCE(payment_channel_name, ''),
 	                 product_provider_price, product_price, product_admin_fee, COALESCE(product_merchant_fee, 0), COALESCE(product_provider_admin_fee, 0), COALESCE(product_provider_merchant_fee, 0), payment_admin_fee, total_amount, 
 	                 COALESCE(customer_id, ''), COALESCE(other_customer_id, ''), reference_number_internal, reference_number_merchant, reference_number_provider, serial_number, 
@@ -83,7 +83,7 @@ func GetTransactionByRefProvider(exec QueryExecutor, refProvider string) (*model
 	          FROM transactions WHERE reference_number_provider = $1`
 	var t models.Transaction
 	err := exec.QueryRow(query, refProvider).Scan(&t.ID, &t.MerchantID, &t.ProductID, &t.ProductSegmentID, &t.ProductProviderID, &t.ProviderID, &t.ProductTypeID, &t.ProductReferenceID, &t.PaymentChannelID,
-		&t.ProductCode, &t.SnapshotProductCode, &t.SnapshotProductName,
+		&t.ProductCode,
 		&t.MerchantName, &t.ProductName, &t.ProductSegmentName, &t.ProductProviderCode, &t.ProductProviderName, &t.ProviderName, &t.ProductTypeName, &t.PaymentChannelName,
 		&t.ProductProviderPrice, &t.ProductPrice, &t.ProductAdminFee, &t.ProductMerchantFee, &t.ProductProviderAdminFee, &t.ProductProviderMerchantFee, &t.PaymentAdminFee, &t.TotalAmount,
 		&t.CustomerID, &t.OtherCustomerID, &t.ReferenceNumberInternal, &t.ReferenceNumberMerchant, &t.ReferenceNumberProvider, &t.SerialNumber,
@@ -96,13 +96,13 @@ func GetTransactionByRefProvider(exec QueryExecutor, refProvider string) (*model
 
 func UpdateTransaction(exec QueryExecutor, t *models.Transaction) error {
 	query := `UPDATE transactions SET merchant_id = ?, product_id = ?, product_segment_id = ?, product_provider_id = ?, provider_id = ?, product_type_id = ?, product_reference_id = ?, payment_channel_id = ?, 
-	                                 product_code = ?, snapshot_product_code = ?, snapshot_product_name = ?, merchant_name = ?, product_name = ?, product_segment_name = ?, product_provider_code = ?, product_provider_name = ?, provider_name = ?, product_type_name = ?, payment_channel_name = ?,
+	                                 product_code = ?,  merchant_name = ?, product_name = ?, product_segment_name = ?, product_provider_code = ?, product_provider_name = ?, provider_name = ?, product_type_name = ?, payment_channel_name = ?,
 	                                 product_provider_price = ?, product_price = ?, product_admin_fee = ?, product_merchant_fee = ?, product_provider_admin_fee = ?, product_provider_merchant_fee = ?, payment_admin_fee = ?, total_amount = ?, 
 	                                 customer_id = ?, other_customer_id = ?, reference_number_merchant = ?, reference_number_provider = ?, serial_number = ?, 
 	                                 status_code = ?, status_message = ?, retry_count = ?, updated_at = ?, updated_by = ? WHERE id = ?`
 	query = helpers.QuerySupport(query)
 	_, err := exec.Exec(query, t.MerchantID, t.ProductID, t.ProductSegmentID, t.ProductProviderID, t.ProviderID, t.ProductTypeID, t.ProductReferenceID, t.PaymentChannelID,
-		t.ProductCode, t.SnapshotProductCode, t.SnapshotProductName, t.MerchantName, t.ProductName, t.ProductSegmentName, t.ProductProviderCode, t.ProductProviderName, t.ProviderName, t.ProductTypeName, t.PaymentChannelName,
+		t.ProductCode, t.MerchantName, t.ProductName, t.ProductSegmentName, t.ProductProviderCode, t.ProductProviderName, t.ProviderName, t.ProductTypeName, t.PaymentChannelName,
 		t.ProductProviderPrice, t.ProductPrice, t.ProductAdminFee, t.ProductMerchantFee, t.ProductProviderAdminFee, t.ProductProviderMerchantFee, t.PaymentAdminFee, t.TotalAmount,
 		t.CustomerID, t.OtherCustomerID, t.ReferenceNumberMerchant, t.ReferenceNumberProvider, t.SerialNumber,
 		t.StatusCode, t.StatusMessage, t.RetryCount, t.UpdatedAt, t.UpdatedBy, t.ID)
@@ -151,7 +151,7 @@ func GetTransactionsList(exec QueryExecutor, search string, start, length int, o
 		whr += " AND payment_channel_id = " + strconv.FormatInt(*filters.PaymentChannelID, 10)
 	}
 	if filters.ProductCode != "" {
-		whr += " AND (product_code = '" + filters.ProductCode + "' OR snapshot_product_code = '" + filters.ProductCode + "')"
+		whr += " AND product_code = '" + filters.ProductCode + "'"
 	}
 	if filters.CustomerID != "" {
 		whr += " AND customer_id = '" + filters.CustomerID + "'"
@@ -175,7 +175,7 @@ func GetTransactionsList(exec QueryExecutor, search string, start, length int, o
 		whr += " AND created_at <= '" + filters.EndDate + "'"
 	}
 	if search != "" {
-		whr += " AND (snapshot_product_code ILIKE '%" + search + "%' OR product_code ILIKE '%" + search + "%' OR product_provider_code ILIKE '%" + search + "%' OR reference_number_internal ILIKE '%" + search + "%' OR customer_id ILIKE '%" + search + "%' OR other_customer_id ILIKE '%" + search + "%')"
+		whr += " AND ( product_code ILIKE '%" + search + "%' OR product_provider_code ILIKE '%" + search + "%' OR reference_number_internal ILIKE '%" + search + "%' OR customer_id ILIKE '%" + search + "%' OR other_customer_id ILIKE '%" + search + "%')"
 	}
 
 	countQuery := `SELECT COUNT(*) FROM transactions WHERE true` + whr
@@ -186,7 +186,7 @@ func GetTransactionsList(exec QueryExecutor, search string, start, length int, o
 	}
 
 	query := `SELECT t.id, t.merchant_id, t.product_id, t.product_segment_id, t.product_provider_id, t.provider_id, t.product_type_id, t.product_reference_id, t.payment_channel_id, 
-	                 COALESCE(t.product_code, ''), COALESCE(t.snapshot_product_code, ''), COALESCE(t.snapshot_product_name, ''), 
+	                 COALESCE(t.product_code, ''),  
 	                 COALESCE(t.merchant_name, m.merchant_name, ''), COALESCE(t.product_name, p.product_name, ''), COALESCE(t.product_segment_name, ps.segment_name, ''), COALESCE(t.product_provider_code, pprov.product_provider_code, ''), COALESCE(t.product_provider_name, pprov.product_provider_name, pprov.product_provider_code, ''), COALESCE(t.provider_name, prov.provider_name, ''), COALESCE(t.product_type_name, ''), COALESCE(t.payment_channel_name, pc.channel_name, ''),
 	                 t.product_provider_price, t.product_price, t.product_admin_fee, COALESCE(t.product_merchant_fee, 0), COALESCE(t.product_provider_admin_fee, 0), COALESCE(t.product_provider_merchant_fee, 0), t.payment_admin_fee, t.total_amount, 
 	                 COALESCE(t.customer_id, ''), COALESCE(t.other_customer_id, ''), t.reference_number_internal, t.reference_number_merchant, t.reference_number_provider, t.serial_number, 
@@ -230,7 +230,7 @@ func GetTransactionsList(exec QueryExecutor, search string, start, length int, o
 	for rows.Next() {
 		var t models.Transaction
 		err = rows.Scan(&t.ID, &t.MerchantID, &t.ProductID, &t.ProductSegmentID, &t.ProductProviderID, &t.ProviderID, &t.ProductTypeID, &t.ProductReferenceID, &t.PaymentChannelID,
-			&t.ProductCode, &t.SnapshotProductCode, &t.SnapshotProductName,
+			&t.ProductCode,
 			&t.MerchantName, &t.ProductName, &t.ProductSegmentName, &t.ProductProviderCode, &t.ProductProviderName, &t.ProviderName, &t.ProductTypeName, &t.PaymentChannelName,
 			&t.ProductProviderPrice, &t.ProductPrice, &t.ProductAdminFee, &t.ProductMerchantFee, &t.ProductProviderAdminFee, &t.ProductProviderMerchantFee, &t.PaymentAdminFee, &t.TotalAmount,
 			&t.CustomerID, &t.OtherCustomerID, &t.ReferenceNumberInternal, &t.ReferenceNumberMerchant, &t.ReferenceNumberProvider, &t.SerialNumber,
@@ -278,7 +278,7 @@ func GetTransactionsListByMerchantID(exec QueryExecutor, merchantID int64, searc
 		whr += " AND payment_channel_id = " + strconv.FormatInt(*filters.PaymentChannelID, 10)
 	}
 	if filters.ProductCode != "" {
-		whr += " AND (product_code = '" + filters.ProductCode + "' OR snapshot_product_code = '" + filters.ProductCode + "')"
+		whr += " AND (product_code = '" + filters.ProductCode + "' )"
 	}
 	if filters.CustomerID != "" {
 		whr += " AND customer_id = '" + filters.CustomerID + "'"
@@ -302,7 +302,7 @@ func GetTransactionsListByMerchantID(exec QueryExecutor, merchantID int64, searc
 		whr += " AND created_at <= '" + filters.EndDate + "'"
 	}
 	if search != "" {
-		whr += " AND (snapshot_product_code ILIKE '%" + search + "%' OR product_code ILIKE '%" + search + "%' OR product_provider_code ILIKE '%" + search + "%' OR reference_number_internal ILIKE '%" + search + "%' OR customer_id ILIKE '%" + search + "%' OR other_customer_id ILIKE '%" + search + "%')"
+		whr += " AND ( product_code ILIKE '%" + search + "%' OR product_provider_code ILIKE '%" + search + "%' OR reference_number_internal ILIKE '%" + search + "%' OR customer_id ILIKE '%" + search + "%' OR other_customer_id ILIKE '%" + search + "%')"
 	}
 
 	countQuery := `SELECT COUNT(*) FROM transactions WHERE true` + whr
@@ -313,7 +313,7 @@ func GetTransactionsListByMerchantID(exec QueryExecutor, merchantID int64, searc
 	}
 
 	query := `SELECT t.id, t.merchant_id, t.product_id, t.product_segment_id, t.product_provider_id, t.provider_id, t.product_type_id, t.product_reference_id, t.payment_channel_id, 
-	                 COALESCE(t.product_code, ''), COALESCE(t.snapshot_product_code, ''), COALESCE(t.snapshot_product_name, ''), 
+	                 COALESCE(t.product_code, ''),  
 	                 COALESCE(t.merchant_name, m.merchant_name, ''), COALESCE(t.product_name, p.product_name, ''), COALESCE(t.product_segment_name, ps.segment_name, ''), COALESCE(t.product_provider_code, pprov.product_provider_code, ''), COALESCE(t.product_provider_name, pprov.product_provider_name, pprov.product_provider_code, ''), COALESCE(t.provider_name, prov.provider_name, ''), COALESCE(t.product_type_name, ''), COALESCE(t.payment_channel_name, pc.channel_name, ''),
 	                 t.product_provider_price, t.product_price, t.product_admin_fee, COALESCE(t.product_merchant_fee, 0), COALESCE(t.product_provider_admin_fee, 0), COALESCE(t.product_provider_merchant_fee, 0), t.payment_admin_fee, t.total_amount, 
 	                 COALESCE(t.customer_id, ''), COALESCE(t.other_customer_id, ''), t.reference_number_internal, t.reference_number_merchant, t.reference_number_provider, t.serial_number, 
@@ -357,7 +357,7 @@ func GetTransactionsListByMerchantID(exec QueryExecutor, merchantID int64, searc
 	for rows.Next() {
 		var t models.Transaction
 		err = rows.Scan(&t.ID, &t.MerchantID, &t.ProductID, &t.ProductSegmentID, &t.ProductProviderID, &t.ProviderID, &t.ProductTypeID, &t.ProductReferenceID, &t.PaymentChannelID,
-			&t.ProductCode, &t.SnapshotProductCode, &t.SnapshotProductName,
+			&t.ProductCode,
 			&t.MerchantName, &t.ProductName, &t.ProductSegmentName, &t.ProductProviderCode, &t.ProductProviderName, &t.ProviderName, &t.ProductTypeName, &t.PaymentChannelName,
 			&t.ProductProviderPrice, &t.ProductPrice, &t.ProductAdminFee, &t.ProductMerchantFee, &t.ProductProviderAdminFee, &t.ProductProviderMerchantFee, &t.PaymentAdminFee, &t.TotalAmount,
 			&t.CustomerID, &t.OtherCustomerID, &t.ReferenceNumberInternal, &t.ReferenceNumberMerchant, &t.ReferenceNumberProvider, &t.SerialNumber,

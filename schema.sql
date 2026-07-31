@@ -253,33 +253,42 @@ CREATE TABLE payment_channels (
 -- 6. CORE TRANSACTION
 CREATE TABLE transactions (
   id BIGSERIAL PRIMARY KEY,
+  --merchant
   merchant_id BIGINT REFERENCES merchants(id) ON DELETE CASCADE,
-  product_id BIGINT REFERENCES products(id) ON DELETE SET NULL,
-  product_segment_id BIGINT REFERENCES product_segments(id) ON DELETE SET NULL,
-  product_provider_id BIGINT REFERENCES product_providers(id) ON DELETE SET NULL,
-  provider_id BIGINT REFERENCES providers(id) ON DELETE SET NULL,
-  product_type_id BIGINT REFERENCES product_types(id) ON DELETE SET NULL,
-  product_reference_id BIGINT REFERENCES product_references(id) ON DELETE SET NULL,
-  payment_channel_id BIGINT REFERENCES payment_channels(id) ON DELETE SET NULL,
-  
-  product_code VARCHAR(255),
-  snapshot_product_code VARCHAR(255),
-  snapshot_product_name VARCHAR(255),
   merchant_name VARCHAR(255),
+  --product type
+  product_type_id BIGINT REFERENCES product_types(id) ON DELETE SET NULL,
+  --product
+  product_id BIGINT REFERENCES products(id) ON DELETE SET NULL,
+  product_code VARCHAR(255),
   product_name VARCHAR(255),
-  product_segment_name VARCHAR(255),
-  product_provider_code VARCHAR(255),
-  product_provider_name VARCHAR(255),
-  provider_name VARCHAR(255),
-  product_type_name VARCHAR(255),
-  payment_channel_name VARCHAR(255),
-  
-  product_provider_price NUMERIC(15,2),
   product_price NUMERIC(15,2),
   product_admin_fee NUMERIC(15,2),
   product_merchant_fee NUMERIC(15,2),
+  --product provider
+  product_provider_id BIGINT REFERENCES product_providers(id) ON DELETE SET NULL,
+  product_provider_code VARCHAR(255),
+  product_provider_name VARCHAR(255),
+  product_provider_price NUMERIC(15,2),
   product_provider_admin_fee NUMERIC(15,2),
   product_provider_merchant_fee NUMERIC(15,2),
+  --provider
+  provider_id BIGINT REFERENCES providers(id) ON DELETE SET NULL,
+  provider_name VARCHAR(255),
+  --segment
+  --product segment
+  product_segment_id BIGINT REFERENCES product_segments(id) ON DELETE SET NULL,
+  product_segment_name VARCHAR(255),
+  product_reference_id BIGINT REFERENCES product_references(id) ON DELETE SET NULL,
+  payment_channel_id BIGINT REFERENCES payment_channels(id) ON DELETE SET NULL,
+  
+  --snapshot_product_code VARCHAR(255),
+  --snapshot_product_name VARCHAR(255),
+  product_type_name VARCHAR(255),
+  payment_channel_name VARCHAR(255),
+  
+  
+  
   payment_admin_fee NUMERIC(15,2),
   total_amount NUMERIC(15,2),
   
@@ -412,7 +421,7 @@ CREATE INDEX IF NOT EXISTS idx_transactions_reference_number_provider ON transac
 CREATE INDEX IF NOT EXISTS idx_transactions_status_code               ON transactions(status_code);
 CREATE INDEX IF NOT EXISTS idx_transactions_customer_id               ON transactions(customer_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_other_customer_id         ON transactions(other_customer_id);
-CREATE INDEX IF NOT EXISTS idx_transactions_snapshot_product_code     ON transactions(snapshot_product_code);
+-- CREATE INDEX IF NOT EXISTS idx_transactions_snapshot_product_code     ON transactions(snapshot_product_code);
 -- Composite: merchant + status sering difilter bersamaan di dashboard
 CREATE INDEX IF NOT EXISTS idx_transactions_merchant_status           ON transactions(merchant_id, status_code);
 

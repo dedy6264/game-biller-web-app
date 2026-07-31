@@ -1,10 +1,10 @@
 package repositories
 
 import (
-	"database/sql"
 	"fmt"
 	"gamebiller/helpers"
 	"gamebiller/models"
+	"strconv"
 	"strings"
 )
 
@@ -63,18 +63,45 @@ func DeleteSavingAccount(exec QueryExecutor, id int64) error {
 	return err
 }
 
-func GetSavingAccountsList(exec QueryExecutor, search string, start, length int, order, sort string) ([]models.SavingAccount, int64, error) {
-	var count int64
-	countQuery := `SELECT COUNT(*) FROM saving_accounts WHERE account_number ILIKE $1`
-	likeSearch := "%" + search + "%"
-	err := exec.QueryRow(countQuery, likeSearch).Scan(&count)
+func GetSavingAccountsList(exec QueryExecutor, search string, start, length int, order, sort string, filters models.SavingAccountFilters) ([]models.SavingAccount, int64, error) {
+	var (
+		count int64
+		whr   string
+	)
+	if filters.ID != 0 {
+		whr += " AND sa.id = " + strconv.FormatInt(filters.ID, 10)
+	}
+	if filters.MerchantID != 0 {
+		whr += " AND sa.merchant_id = " + strconv.FormatInt(filters.MerchantID, 10)
+	}
+	if filters.AccountNumber != "" {
+		whr += " AND sa.account_number = '" + filters.AccountNumber + "'"
+	}
+	if filters.Status != "" {
+		whr += " AND sa.status = '" + filters.Status + "'"
+	}
+	if search != "" {
+		whr += " AND (sa.account_number ILIKE '%" + search + "%' OR m.merchant_name ILIKE '%" + search + "%')"
+	}
+
+	countQuery := `SELECT COUNT(*) FROM saving_accounts sa LEFT JOIN merchants m ON m.id = sa.merchant_id WHERE true` + whr
+	countQuery = helpers.QuerySupport(countQuery)
+	err := exec.QueryRow(countQuery).Scan(&count)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	query := `SELECT id, merchant_id, account_number, balance, account_pin_hash, status, created_at, created_by, updated_at, updated_by FROM saving_accounts WHERE account_number ILIKE ?`
+	query := `SELECT sa.id, sa.merchant_id, sa.account_number, sa.balance, sa.account_pin_hash, sa.status, sa.created_at, sa.created_by, sa.updated_at, sa.updated_by, COALESCE(m.merchant_name, '')
+	          FROM saving_accounts sa
+	          LEFT JOIN merchants m ON m.id = sa.merchant_id
+	          WHERE true` + whr
 	if order != "" {
 		order = strings.ReplaceAll(order, ";", "")
+		if order == "id" {
+			order = "sa.id"
+		} else if order == "balance" {
+			order = "sa.balance"
+		}
 		if strings.ToLower(sort) != "desc" {
 			sort = "ASC"
 		} else {
@@ -82,14 +109,14 @@ func GetSavingAccountsList(exec QueryExecutor, search string, start, length int,
 		}
 		query += fmt.Sprintf(" ORDER BY %s %s", order, sort)
 	} else {
-		query += " ORDER BY id DESC"
+		query += " ORDER BY sa.id DESC"
 	}
 	if length > 0 {
 		query += fmt.Sprintf(" LIMIT %d OFFSET %d", length, start)
 	}
 	query = helpers.QuerySupport(query)
 
-	rows, err := exec.Query(query, likeSearch)
+	rows, err := exec.Query(query)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -98,7 +125,7 @@ func GetSavingAccountsList(exec QueryExecutor, search string, start, length int,
 	var list []models.SavingAccount
 	for rows.Next() {
 		var sa models.SavingAccount
-		err = rows.Scan(&sa.ID, &sa.MerchantID, &sa.AccountNumber, &sa.Balance, &sa.AccountPinHash, &sa.Status, &sa.CreatedAt, &sa.CreatedBy, &sa.UpdatedAt, &sa.UpdatedBy)
+		err = rows.Scan(&sa.ID, &sa.MerchantID, &sa.AccountNumber, &sa.Balance, &sa.AccountPinHash, &sa.Status, &sa.CreatedAt, &sa.CreatedBy, &sa.UpdatedAt, &sa.UpdatedBy, &sa.MerchantName)
 		if err != nil {
 			return nil, 0, err
 		}
@@ -132,38 +159,65 @@ func GetSavingTransactionByID(exec QueryExecutor, id int64) (*models.SavingTrans
 	return &st, nil
 }
 
-func GetSavingTransactionsList(exec QueryExecutor, accountID int64, start, length int) ([]models.SavingTransaction, int64, error) {
-	var count int64
-	var countQuery string
-	var err error
-	if accountID > 0 {
-		countQuery = `SELECT COUNT(*) FROM saving_transactions WHERE saving_account_id = $1`
-		err = exec.QueryRow(countQuery, accountID).Scan(&count)
-	} else {
-		countQuery = `SELECT COUNT(*) FROM saving_transactions`
-		err = exec.QueryRow(countQuery).Scan(&count)
+func GetSavingTransactionsList(exec QueryExecutor, search string, start, length int, order, sort string, filters models.SavingTransactionFilters) ([]models.SavingTransaction, int64, error) {
+	var (
+		count int64
+		whr   string
+	)
+	if filters.ID != 0 {
+		whr += " AND st.id = " + strconv.FormatInt(filters.ID, 10)
 	}
+	if filters.SavingAccountID != 0 {
+		whr += " AND st.saving_account_id = " + strconv.FormatInt(filters.SavingAccountID, 10)
+	}
+	if filters.MerchantID != 0 {
+		whr += " AND sa.merchant_id = " + strconv.FormatInt(filters.MerchantID, 10)
+	}
+	if filters.TypeDC != "" {
+		whr += " AND st.type_dc = '" + filters.TypeDC + "'"
+	}
+	if filters.TransactionCode != "" {
+		whr += " AND st.transaction_code = '" + filters.TransactionCode + "'"
+	}
+	if filters.ReferenceNumber != "" {
+		whr += " AND st.reference_number = '" + filters.ReferenceNumber + "'"
+	}
+	if search != "" {
+		whr += " AND (st.reference_number ILIKE '%" + search + "%' OR sa.account_number ILIKE '%" + search + "%' OR m.merchant_name ILIKE '%" + search + "%')"
+	}
+
+	countQuery := `SELECT COUNT(*) FROM saving_transactions st LEFT JOIN saving_accounts sa ON sa.id = st.saving_account_id LEFT JOIN merchants m ON m.id = sa.merchant_id WHERE true` + whr
+	countQuery = helpers.QuerySupport(countQuery)
+	err := exec.QueryRow(countQuery).Scan(&count)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	var query string
-	var rows *sql.Rows
-	if accountID > 0 {
-		query = `SELECT id, saving_account_id, type_dc, amount, last_balance, reference_number, transaction_code, description, created_at, created_by, created_by_user FROM saving_transactions WHERE saving_account_id = ? ORDER BY id DESC`
-		if length > 0 {
-			query += fmt.Sprintf(" LIMIT %d OFFSET %d", length, start)
+	query := `SELECT st.id, st.saving_account_id, st.type_dc, st.amount, st.last_balance, st.reference_number, st.transaction_code, st.description, st.created_at, st.created_by, st.created_by_user, COALESCE(sa.account_number, ''), COALESCE(m.merchant_name, '')
+	          FROM saving_transactions st
+	          LEFT JOIN saving_accounts sa ON sa.id = st.saving_account_id
+	          LEFT JOIN merchants m ON m.id = sa.merchant_id
+	          WHERE true` + whr
+	if order != "" {
+		order = strings.ReplaceAll(order, ";", "")
+		if order == "id" {
+			order = "st.id"
 		}
-		query = helpers.QuerySupport(query)
-		rows, err = exec.Query(query, accountID)
+		if strings.ToLower(sort) != "desc" {
+			sort = "ASC"
+		} else {
+			sort = "DESC"
+		}
+		query += fmt.Sprintf(" ORDER BY %s %s", order, sort)
 	} else {
-		query = `SELECT id, saving_account_id, type_dc, amount, last_balance, reference_number, transaction_code, description, created_at, created_by, created_by_user FROM saving_transactions ORDER BY id DESC`
-		if length > 0 {
-			query += fmt.Sprintf(" LIMIT %d OFFSET %d", length, start)
-		}
-		query = helpers.QuerySupport(query)
-		rows, err = exec.Query(query)
+		query += " ORDER BY st.id DESC"
 	}
+	if length > 0 {
+		query += fmt.Sprintf(" LIMIT %d OFFSET %d", length, start)
+	}
+	query = helpers.QuerySupport(query)
+
+	rows, err := exec.Query(query)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -172,7 +226,7 @@ func GetSavingTransactionsList(exec QueryExecutor, accountID int64, start, lengt
 	var list []models.SavingTransaction
 	for rows.Next() {
 		var st models.SavingTransaction
-		err = rows.Scan(&st.ID, &st.SavingAccountID, &st.TypeDC, &st.Amount, &st.LastBalance, &st.ReferenceNumber, &st.TransactionCode, &st.Description, &st.CreatedAt, &st.CreatedBy, &st.CreatedByUser)
+		err = rows.Scan(&st.ID, &st.SavingAccountID, &st.TypeDC, &st.Amount, &st.LastBalance, &st.ReferenceNumber, &st.TransactionCode, &st.Description, &st.CreatedAt, &st.CreatedBy, &st.CreatedByUser, &st.AccountNumber, &st.MerchantName)
 		if err != nil {
 			return nil, 0, err
 		}

@@ -99,6 +99,39 @@ func AdminUpdateMerchant(c echo.Context) error {
 				m.ApiCredential = existing
 			}
 		}
+
+		// Bind/Create Saving Account for Merchant if not exists
+		sa, err := repositories.GetSavingAccountByMerchantID(tx, input.ID)
+		if err != nil {
+			pinHash, _ := helpers.HashPassword("123456")
+			newSa := models.SavingAccount{
+				MerchantID:     input.ID,
+				AccountNumber:  "SA-" + helpers.RandomDigits(8),
+				Balance:        0.00,
+				AccountPinHash: pinHash,
+				Status:         "active",
+				CreatedAt:      now,
+				CreatedBy:      "admin",
+				UpdatedAt:      now,
+				UpdatedBy:      "admin",
+			}
+			saId, err := repositories.CreateSavingAccount(tx, &newSa)
+			if err != nil {
+				return err
+			}
+			newSa.ID = saId
+			m.SavingAccount = &newSa
+		} else {
+			if input.SavingAccount != nil {
+				if input.SavingAccount.Status != "" {
+					sa.Status = input.SavingAccount.Status
+				}
+				sa.UpdatedAt = now
+				sa.UpdatedBy = "admin"
+				_ = repositories.UpdateSavingAccount(tx, sa)
+			}
+			m.SavingAccount = sa
+		}
 		return nil
 	})
 

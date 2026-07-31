@@ -79,7 +79,8 @@ type Merchant struct {
 	SecretKey     string                 `json:"secret_key,omitempty"`
 	WhitelistIPs  string                 `json:"whitelist_ips,omitempty"`
 	ApiIsActive   bool                   `json:"api_is_active"`
-	ApiCredential *MerchantApiCredential `json:"api_credential"`
+	ApiCredential *MerchantApiCredential `json:"api_credential,omitempty"`
+	SavingAccount *SavingAccount         `json:"saving_account,omitempty"`
 }
 
 type MerchantApiCredential struct {
@@ -108,6 +109,7 @@ type SavingAccount struct {
 	CreatedBy      string  `json:"created_by"`
 	UpdatedAt      string  `json:"updated_at"`
 	UpdatedBy      string  `json:"updated_by"`
+	MerchantName   string  `json:"merchant_name,omitempty"`
 }
 
 type SavingTransaction struct {
@@ -122,6 +124,8 @@ type SavingTransaction struct {
 	CreatedAt       string  `json:"created_at"`
 	CreatedBy       string  `json:"created_by"`
 	CreatedByUser   *int64  `json:"created_by_user,omitempty"`
+	AccountNumber   string  `json:"account_number,omitempty"`
+	MerchantName    string  `json:"merchant_name,omitempty"`
 }
 
 // 4. PRODUCT & PROVIDER MASTER
@@ -262,8 +266,6 @@ type Transaction struct {
 	ProductReferenceID         int64   `json:"product_reference_id"`
 	PaymentChannelID           int64   `json:"payment_channel_id"`
 	ProductCode                string  `json:"product_code"`
-	SnapshotProductCode        string  `json:"snapshot_product_code"`
-	SnapshotProductName        string  `json:"snapshot_product_name"`
 	MerchantName               string  `json:"merchant_name"`
 	ProductName                string  `json:"product_name"`
 	ProductSegmentName         string  `json:"product_segment_name"`
@@ -324,6 +326,7 @@ type InquiryRequest struct {
 	ReferenceNumberMerchant string `json:"reference_number_merchant"`
 	ZoneID                  string `json:"zone_id"`
 	ServerID                string `json:"server_id"`
+	CustomerPhone           string `json:"customer_phone"`
 	// OtherCustomerID         string `json:"other_customer_id"`
 }
 type OtherCustomerID struct {
@@ -608,4 +611,40 @@ type HeaderItem struct {
 	Key      string `json:"key"`
 	Val      string `json:"val"`
 	IsUpCase bool   `json:"is_up_case"`
+}
+
+type RequestSavingAccounts struct {
+	Draw    int                  `json:"draw"`
+	Search  string               `json:"search"`
+	Start   int                  `json:"start"`
+	Length  int                  `json:"length"`
+	Order   string               `json:"order"`
+	Sort    string               `json:"sort"`
+	Filters SavingAccountFilters `json:"filters"`
+}
+
+type SavingAccountFilters struct {
+	ID            int64  `json:"id"`
+	MerchantID    int64  `json:"merchant_id"`
+	AccountNumber string `json:"account_number"`
+	Status        string `json:"status"`
+}
+
+type RequestSavingTransactions struct {
+	Draw    int                      `json:"draw"`
+	Search  string                   `json:"search"`
+	Start   int                      `json:"start"`
+	Length  int                      `json:"length"`
+	Order   string                   `json:"order"`
+	Sort    string                   `json:"sort"`
+	Filters SavingTransactionFilters `json:"filters"`
+}
+
+type SavingTransactionFilters struct {
+	ID              int64  `json:"id"`
+	SavingAccountID int64  `json:"saving_account_id"`
+	MerchantID      int64  `json:"merchant_id"`
+	TypeDC          string `json:"type_dc"`
+	TransactionCode string `json:"transaction_code"`
+	ReferenceNumber string `json:"reference_number"`
 }

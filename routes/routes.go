@@ -38,6 +38,9 @@ func publicWebApp(a *echo.Group) {
 	a.POST("/popular-products", webapp.GetPopularProduct)
 	a.POST("/payment-methods", webapp.GetPaymentMethod)
 	a.POST("/callback/iak", webapp.IAKCallback)
+	a.POST("/inquiry", webapp.Inquiry)
+	a.POST("/payment", webapp.Payment)
+	a.POST("/history", webapp.TransactionHistory)
 }
 func privateWebApp(a *echo.Group) {
 	// Private
@@ -46,6 +49,7 @@ func privateWebApp(a *echo.Group) {
 	a.POST("/payment", webapp.Payment)
 	a.POST("/history", webapp.TransactionHistory)
 }
+
 func dashboardRoutes(a *echo.Group) {
 	a.Use(echojwt.WithConfig(JwtConfig))
 
@@ -152,6 +156,14 @@ func dashboardRoutes(a *echo.Group) {
 	a.POST("/payment-channels/create", dashboard.AdminCreatePaymentChannel)
 	a.POST("/payment-channels/update", dashboard.AdminUpdatePaymentChannel)
 	a.POST("/payment-channels/delete", dashboard.AdminDeletePaymentChannel)
+
+	// Saving Accounts CRUD
+	a.POST("/saving-accounts/list", dashboard.AdminGetSavingAccounts)
+	a.POST("/saving-accounts/detail", dashboard.AdminGetSavingAccountByID)
+	a.POST("/saving-accounts/update", dashboard.AdminUpdateSavingAccount)
+
+	// Saving Transactions CRUD
+	a.POST("/saving-transactions/list", dashboard.AdminGetSavingTransactions)
 }
 func AppRoutes(e *echo.Echo) {
 	// Print logs for every request, from header, request and response

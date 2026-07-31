@@ -2845,6 +2845,172 @@
 							"response": []
 						}
 					]
+				},
+				{
+					"name": "Saving Accounts",
+					"item": [
+						{
+							"name": "List Saving Accounts",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{admin_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"draw\": 1,\n    \"start\": 0,\n    \"length\": 10,\n    \"search\": \"\",\n    \"filters\": {}\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/dashboard/saving-accounts/list",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"dashboard",
+										"saving-accounts",
+										"list"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Detail Saving Account",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{admin_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"id\": 1\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/dashboard/saving-accounts/detail",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"dashboard",
+										"saving-accounts",
+										"detail"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Update Saving Account",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{admin_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"id\": 1,\n    \"status\": \"active\",\n    \"balance\": 1000000\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/dashboard/saving-accounts/update",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"dashboard",
+										"saving-accounts",
+										"update"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Saving Transactions",
+					"item": [
+						{
+							"name": "List Saving Transactions",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{admin_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"draw\": 1,\n    \"start\": 0,\n    \"length\": 10,\n    \"search\": \"\",\n    \"filters\": {}\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/dashboard/saving-transactions/list",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"dashboard",
+										"saving-transactions",
+										"list"
+									]
+								}
+							},
+							"response": []
+						}
+					]
 				}
 			]
 		}

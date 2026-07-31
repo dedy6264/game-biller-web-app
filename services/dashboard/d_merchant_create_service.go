@@ -59,7 +59,34 @@ func AdminCreateMerchant(c echo.Context) error {
 				m.ApiCredential.SecretKeyHash = hash
 			}
 			_, err = repositories.CreateMerchantApiCredential(tx, m.ApiCredential)
-			return err
+			if err != nil {
+				return err
+			}
+		}
+
+		// Bind/Create Saving Account for Merchant
+		sa, err := repositories.GetSavingAccountByMerchantID(tx, mid)
+		if err != nil {
+			pinHash, _ := helpers.HashPassword("123456")
+			newSa := models.SavingAccount{
+				MerchantID:     mid,
+				AccountNumber:  "SA-" + helpers.RandomDigits(8),
+				Balance:        0.00,
+				AccountPinHash: pinHash,
+				Status:         "active",
+				CreatedAt:      now,
+				CreatedBy:      "admin",
+				UpdatedAt:      now,
+				UpdatedBy:      "admin",
+			}
+			saId, err := repositories.CreateSavingAccount(tx, &newSa)
+			if err != nil {
+				return err
+			}
+			newSa.ID = saId
+			m.SavingAccount = &newSa
+		} else {
+			m.SavingAccount = sa
 		}
 		return nil
 	})
