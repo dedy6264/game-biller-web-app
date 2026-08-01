@@ -292,7 +292,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"product_code\": \"ML_86\",\n    \"target_user_id\": \"12345678\",\n    \"zone_id\": \"1234\",\n    \"server_id\": \"5678\",\n    \"other_customer_id\": \"{\\\"zone_id\\\":\\\"1234\\\",\\\"server_id\\\":\\\"5678\\\"}\",\n    \"payment_channel_code\": \"BALANCE_INTERNAL\",\n    \"reference_number_merchant\": \"REF-MERCH-001\"\n}"
+							"raw": "{\n    \"product_code\": \"ML_86\",\n    \"target_user_id\": \"12345678\",\n    \"zone_id\": \"1234\",\n    \"server_id\": \"5678\",\n    \"customer_phone\": \"081234567890\",\n    \"other_customer_id\": \"{\\\"zone_id\\\":\\\"1234\\\",\\\"server_id\\\":\\\"5678\\\"}\",\n    \"payment_channel_code\": \"BALANCE_INTERNAL\",\n    \"reference_number_merchant\": \"REF-MERCH-001\"\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/api/webapp/inquiry",

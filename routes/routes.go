@@ -38,9 +38,9 @@ func publicWebApp(a *echo.Group) {
 	a.POST("/popular-products", webapp.GetPopularProduct)
 	a.POST("/payment-methods", webapp.GetPaymentMethod)
 	a.POST("/callback/iak", webapp.IAKCallback)
-	a.POST("/inquiry", webapp.Inquiry)
-	a.POST("/payment", webapp.Payment)
-	a.POST("/history", webapp.TransactionHistory)
+	a.POST("/publicinquiry", webapp.InquiryUnSubscribe)
+	a.POST("/publicpayment", webapp.PaymentUnSubscribe)
+	a.POST("/publichistory", webapp.TransactionUnSubscribeHistory)
 }
 func privateWebApp(a *echo.Group) {
 	// Private

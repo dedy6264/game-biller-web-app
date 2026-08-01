@@ -613,17 +613,17 @@ func CreateProductProvider(exec QueryExecutor, pp *models.ProductProvider) (int6
 	return id, nil
 }
 
-func GetProductProviderByID(exec QueryExecutor, id int64) (*models.ProductProvider, error) {
+func GetProductProviderByID(exec QueryExecutor, id int64) (models.ProductProvider, error) {
 	query := `SELECT id, provider_id, COALESCE(provider_name, ''), COALESCE(product_provider_code, ''), COALESCE(product_provider_name, ''), product_provider_price, product_provider_admin_fee, product_provider_merchant_fee, provider_index, is_available, created_at, created_by, updated_at, updated_by FROM product_providers WHERE id = $1`
 	var pp models.ProductProvider
 	err := exec.QueryRow(query, id).Scan(&pp.ID, &pp.ProviderID, &pp.ProviderName, &pp.ProductProviderCode, &pp.ProductProviderName, &pp.ProductProviderPrice, &pp.ProductProviderAdminFee, &pp.ProductProviderMerchantFee, &pp.ProviderIndex, &pp.IsAvailable, &pp.CreatedAt, &pp.CreatedBy, &pp.UpdatedAt, &pp.UpdatedBy)
 	if err != nil {
-		return nil, err
+		return models.ProductProvider{}, err
 	}
-	return &pp, nil
+	return pp, nil
 }
 
-func UpdateProductProvider(exec QueryExecutor, pp *models.ProductProvider) error {
+func UpdateProductProvider(exec QueryExecutor, pp models.ProductProvider) error {
 	query := `UPDATE product_providers SET provider_id = ?, provider_name = ?, product_provider_code = ?, product_provider_name = ?, product_provider_price = ?, product_provider_admin_fee = ?, product_provider_merchant_fee = ?, provider_index = ?, is_available = ?, updated_at = ?, updated_by = ? WHERE id = ?`
 	query = helpers.QuerySupport(query)
 	_, err := exec.Exec(query, pp.ProviderID, pp.ProviderName, pp.ProductProviderCode, pp.ProductProviderName, pp.ProductProviderPrice, pp.ProductProviderAdminFee, pp.ProductProviderMerchantFee, pp.ProviderIndex, pp.IsAvailable, pp.UpdatedAt, pp.UpdatedBy, pp.ID)
@@ -690,7 +690,7 @@ func GetProductProvidersList(exec QueryExecutor, start, length int, filters mode
 
 // === PRODUCT SEGMENTS REPOSITORY ===
 
-func CreateProductSegment(exec QueryExecutor, ps *models.ProductSegment) (int64, error) {
+func CreateProductSegment(exec QueryExecutor, ps models.ProductSegment) (int64, error) {
 	query := `INSERT INTO product_segments (segment_id, product_provider_id, segment_name, product_name, provider_name, product_provider_code, product_provider_name, product_id, product_price, admin_fee, merchant_fee, product_provider_price, product_provider_admin_fee, product_provider_merchant_fee, created_at, created_by, updated_at, updated_by)
 	          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`
 	query = helpers.QuerySupport(query)
@@ -703,17 +703,17 @@ func CreateProductSegment(exec QueryExecutor, ps *models.ProductSegment) (int64,
 	return id, nil
 }
 
-func GetProductSegmentByID(exec QueryExecutor, id int64) (*models.ProductSegment, error) {
+func GetProductSegmentByID(exec QueryExecutor, id int64) (models.ProductSegment, error) {
 	query := `SELECT id, segment_id, product_provider_id, segment_name, COALESCE(product_name, ''), COALESCE(provider_name, ''), COALESCE(product_provider_code, ''), COALESCE(product_provider_name, ''), product_id, product_price, admin_fee, merchant_fee, product_provider_price, product_provider_admin_fee, product_provider_merchant_fee, created_at, created_by, updated_at, updated_by FROM product_segments WHERE id = $1`
 	var ps models.ProductSegment
 	err := exec.QueryRow(query, id).Scan(&ps.ID, &ps.SegmentID, &ps.ProductProviderID, &ps.SegmentName, &ps.ProductName, &ps.ProviderName, &ps.ProductProviderCode, &ps.ProductProviderName, &ps.ProductID, &ps.ProductPrice, &ps.AdminFee, &ps.MerchantFee, &ps.ProductProviderPrice, &ps.ProductProviderAdminFee, &ps.ProductProviderMerchantFee, &ps.CreatedAt, &ps.CreatedBy, &ps.UpdatedAt, &ps.UpdatedBy)
 	if err != nil {
-		return nil, err
+		return models.ProductSegment{}, err
 	}
-	return &ps, nil
+	return ps, nil
 }
 
-func GetProductSegmentByProductAndSegment(exec QueryExecutor, productID int64, segmentName string) (*models.ProductSegment, error) {
+func GetProductSegmentByProductAndSegment(exec QueryExecutor, productID int64, segmentName string) (models.ProductSegment, error) {
 	query := `SELECT id, segment_id, product_provider_id, segment_name, COALESCE(product_name, ''), COALESCE(provider_name, ''), COALESCE(product_provider_code, ''), COALESCE(product_provider_name, ''), product_id, product_price, admin_fee, merchant_fee, product_provider_price, product_provider_admin_fee, product_provider_merchant_fee, created_at, created_by, updated_at, updated_by 
 	          FROM product_segments 
 	          WHERE product_id = $1 AND (segment_name = $2 OR segment_id = (SELECT id FROM segments WHERE segment_name = $2 LIMIT 1))
@@ -721,12 +721,12 @@ func GetProductSegmentByProductAndSegment(exec QueryExecutor, productID int64, s
 	var ps models.ProductSegment
 	err := exec.QueryRow(query, productID, segmentName).Scan(&ps.ID, &ps.SegmentID, &ps.ProductProviderID, &ps.SegmentName, &ps.ProductName, &ps.ProviderName, &ps.ProductProviderCode, &ps.ProductProviderName, &ps.ProductID, &ps.ProductPrice, &ps.AdminFee, &ps.MerchantFee, &ps.ProductProviderPrice, &ps.ProductProviderAdminFee, &ps.ProductProviderMerchantFee, &ps.CreatedAt, &ps.CreatedBy, &ps.UpdatedAt, &ps.UpdatedBy)
 	if err != nil {
-		return nil, err
+		return models.ProductSegment{}, err
 	}
-	return &ps, nil
+	return ps, nil
 }
 
-func UpdateProductSegment(exec QueryExecutor, ps *models.ProductSegment) error {
+func UpdateProductSegment(exec QueryExecutor, ps models.ProductSegment) error {
 	query := `UPDATE product_segments SET segment_id = ?, product_provider_id = ?, segment_name = ?, product_name = ?, provider_name = ?, product_provider_code = ?, product_provider_name = ?, product_id = ?, product_price = ?, admin_fee = ?, merchant_fee = ?, product_provider_price = ?, product_provider_admin_fee = ?, product_provider_merchant_fee = ?, updated_at = ?, updated_by = ? WHERE id = ?`
 	query = helpers.QuerySupport(query)
 	_, err := exec.Exec(query, ps.SegmentID, ps.ProductProviderID, ps.SegmentName, ps.ProductName, ps.ProviderName, ps.ProductProviderCode, ps.ProductProviderName, ps.ProductID, ps.ProductPrice, ps.AdminFee, ps.MerchantFee, ps.ProductProviderPrice, ps.ProductProviderAdminFee, ps.ProductProviderMerchantFee, ps.UpdatedAt, ps.UpdatedBy, ps.ID)

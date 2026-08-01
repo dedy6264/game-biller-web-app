@@ -214,3 +214,135 @@ func Payment(c echo.Context) error {
 		"status":                    trx.StatusMessage,
 	}))
 }
+func PaymentUnSubscribe(c echo.Context) error {
+	var (
+		svc = "PaymentUnSubscribe"
+	)
+
+	// 1. Validasi kredensial pengguna (JWT)
+
+	var req models.PaymentRequest
+	if err := c.Bind(&req); err != nil {
+		helpers.ProcessLogger(c, svc, err.Error(), "Failed to bind request")
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
+	}
+
+	if req.ReferenceNumberInternal == "" {
+		helpers.ProcessLogger(c, svc, "reference_number_internal is empty", "Validation error")
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
+	}
+
+	db := connections.DBconn()
+
+	// 2. Validasi transaksi berdasarkan noreff
+	trx, err := repositories.GetTransactionByRefInternal(db, req.ReferenceNumberInternal)
+	if err != nil {
+		helpers.ProcessLogger(c, svc, err.Error(), "Transaction not found")
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidProductNotFound, nil))
+	}
+
+	// 3. Validasi status transaksi
+	if trx.StatusCode != helpers.CodeInqSuccess {
+		helpers.ProcessLogger(c, svc, "Invalid transaction status: "+trx.StatusCode, "Validation error")
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidTransaction, nil))
+	}
+
+	channel, err := repositories.GetPaymentChannelByID(db, trx.PaymentChannelID)
+	if err != nil {
+		helpers.ProcessLogger(c, svc, err.Error(), "Failed to get payment channel")
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrSys500, nil))
+	}
+
+	// Validasi channel masih aktif->harus update gagal
+	if !channel.IsActive {
+		trx.StatusCode = helpers.CodeErrInt204
+		trx.StatusMessage = "PAYMENT_METHOD_UNAVAILABLE"
+		err = helpers.DBTransaction(db, func(tx *sql.Tx) error {
+			return repositories.UpdateTransaction(tx, trx)
+		})
+		if err != nil {
+			helpers.ProcessLogger(c, svc, err.Error(), "Failed to update transaction status")
+			return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrSys500, nil))
+		}
+		helpers.ProcessLogger(c, svc, "Payment channel is inactive: "+channel.ChannelCode, "Validation error")
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrInt204, nil))
+	}
+
+	now := time.Now().Format(time.RFC3339)
+
+	// 5. Jika metode pembayaran BALANCE_INTERNAL — potong saldo & verifikasi PIN
+	if channel.ChannelCode == "BALANCE_INTERNAL" {
+
+		helpers.ProcessLogger(c, svc, err.Error(), "Invalid payment method")
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrSys500, nil))
+
+	}
+
+	// 6. Validasi provider — jika provider_id = 1 (IAK), panggil worker IAK payment
+	trx.UpdatedAt = now
+	trx.UpdatedBy = "sys"
+
+	if trx.ProviderID == ProviderIAK {
+		iakReq := models.RequestPayment{
+			RefID:           trx.ReferenceNumberInternal,
+			ProviderRefID:   trx.ReferenceNumberProvider,
+			BillDesc:        trx.OtherCustomerID,
+			CustomerID:      trx.CustomerID,
+			OtherCustomerID: trx.OtherCustomerID,
+			DataProduct: models.DataProduct{
+				ProviderID:         trx.ProviderID,
+				ProductTypeID:      trx.ProductTypeID,
+				ProductCode:        trx.ProductProviderCode,
+				ProductReferenceID: trx.ProductReferenceID,
+			},
+		}
+
+		iakResult, err := callIAKPayment(iakReq)
+		if err != nil {
+			helpers.ProcessLogger(c, svc, err.Error(), "IAK worker payment call failed")
+			trx.StatusCode = helpers.CodeIntrPending
+			trx.StatusMessage = "PENDING_UPSTREAM"
+		} else {
+			if iakResult.StatusCode == helpers.CodeSuccess {
+				trx.StatusCode = helpers.CodeSuccess
+				trx.StatusMessage = "PAYMENT_SUCCESS"
+				// Update data hasil worker ke transaksi
+				if iakResult.DataTransaction.SerialNumber != "" {
+					trx.SerialNumber = iakResult.DataTransaction.SerialNumber
+				}
+				if iakResult.ProviderRefID != "" {
+					trx.ReferenceNumberProvider = iakResult.ProviderRefID
+				}
+			} else {
+				trx.StatusCode = helpers.CodeIntrPending
+				trx.StatusMessage = iakResult.ProviderDetail.Message
+			}
+		}
+	} else {
+		// Provider bukan IAK — langsung set payment success
+		trx.StatusCode = helpers.CodeSuccess
+		trx.StatusMessage = "PAYMENT_SUCCESS"
+		trx.SerialNumber = "SN-" + helpers.RandomDigits(16)
+		trx.ReferenceNumberProvider = "PVD-" + helpers.RandomDigits(12)
+	}
+
+	// 7. Update status transaksi di DB
+	err = helpers.DBTransaction(db, func(tx *sql.Tx) error {
+		return repositories.UpdateTransaction(tx, trx)
+	})
+	if err != nil {
+		helpers.ProcessLogger(c, svc, err.Error(), "Failed to update transaction status")
+		trx.StatusCode = helpers.CodeErrSys500
+		// return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrSys500, nil))
+	}
+
+	return c.JSON(http.StatusOK, helpers.BuildResponse(trx.StatusCode, map[string]any{
+		"reference_number_internal": trx.ReferenceNumberInternal,
+		"product_code":              trx.ProductCode,
+		"product_name":              trx.ProductName,
+		"total_amount":              trx.TotalAmount,
+		"target_user_id":            trx.CustomerID,
+		"serial_number":             trx.SerialNumber,
+		"status":                    trx.StatusMessage,
+	}))
+}

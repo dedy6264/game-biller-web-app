@@ -4,6 +4,7 @@ DROP TABLE IF EXISTS transactions CASCADE;
 DROP TABLE IF EXISTS payment_channels CASCADE;
 DROP TABLE IF EXISTS payment_methods CASCADE;
 DROP TABLE IF EXISTS product_segments CASCADE;
+DROP TABLE IF EXISTS segments CASCADE;
 DROP TABLE IF EXISTS product_providers CASCADE;
 DROP TABLE IF EXISTS products CASCADE;
 DROP TABLE IF EXISTS product_prefixes CASCADE;
@@ -66,6 +67,14 @@ CREATE TABLE otp_codes (
   created_by VARCHAR(255)
 );
 
+CREATE TABLE segments (
+  id BIGSERIAL PRIMARY KEY,
+  segment_name VARCHAR(255) UNIQUE NOT NULL,
+  created_at VARCHAR(255),
+  created_by VARCHAR(255),
+  updated_at VARCHAR(255),
+  updated_by VARCHAR(255)
+);
 -- 2. MERCHANT PROFILE & CREDENTIALS
 CREATE TABLE merchants (
   id BIGSERIAL PRIMARY KEY,
@@ -193,14 +202,6 @@ CREATE TABLE product_providers (
   updated_by VARCHAR(255)
 );
 
-CREATE TABLE segments (
-  id BIGSERIAL PRIMARY KEY,
-  segment_name VARCHAR(255) UNIQUE NOT NULL,
-  created_at VARCHAR(255),
-  created_by VARCHAR(255),
-  updated_at VARCHAR(255),
-  updated_by VARCHAR(255)
-);
 
 CREATE TABLE product_segments (
   id BIGSERIAL PRIMARY KEY,
@@ -294,6 +295,7 @@ CREATE TABLE transactions (
   
   customer_id VARCHAR(255),
   other_customer_id TEXT,
+  customer_phone VARCHAR(255),
   reference_number_internal VARCHAR(255) UNIQUE,
   reference_number_merchant VARCHAR(255),
   reference_number_provider VARCHAR(255),
@@ -382,7 +384,7 @@ CREATE INDEX IF NOT EXISTS idx_products_is_active            ON products(is_acti
 -- product_providers
 CREATE INDEX IF NOT EXISTS idx_product_providers_provider_id          ON product_providers(provider_id);
 CREATE INDEX IF NOT EXISTS idx_product_providers_is_available         ON product_providers(is_available);
-CREATE INDEX IF NOT EXISTS idx_product_providers_provider_product_code ON product_providers(provider_product_code);
+CREATE INDEX IF NOT EXISTS idx_product_providers_product_provider_code ON product_providers(product_provider_code);
 
 -- segments
 CREATE INDEX IF NOT EXISTS idx_segments_segment_name  ON segments(segment_name);
@@ -430,34 +432,42 @@ CREATE INDEX IF NOT EXISTS idx_transaction_payload_logs_transaction_id ON transa
 
 -- Seed Initial Master Data
 
-INSERT INTO roles (id, role_code, role_name, created_at, updated_at) OVERRIDING SYSTEM VALUE VALUES
-(1, 'super_admin', 'Super Administrator Internal', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')),
-(2, 'finance', 'Finance & Billing Internal', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')),
-(3, 'merchant_h2h', 'Mitra Host-to-Host API', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')),
-(4, 'member_reseller', 'Reseller VIP Dashboard', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')),
-(5, 'retail_guest', 'Pembeli Lepas Web Retail', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'));
+INSERT INTO roles ( role_code, role_name, created_at, updated_at) OVERRIDING SYSTEM VALUE VALUES
+( 'super_admin', 'Super Administrator Internal', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')),
+( 'finance', 'Finance & Billing Internal', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')),
+( 'merchant_h2h', 'Mitra Host-to-Host API', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')),
+( 'member_reseller', 'Reseller VIP Dashboard', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')),
+( 'retail_guest', 'Pembeli Lepas Web Retail', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'));
 
-INSERT INTO product_types (id, product_type_name) OVERRIDING SYSTEM VALUE VALUES
-(1, 'Prepaid'),
-(2, 'Postpaid');
+INSERT INTO product_types ( product_type_name) OVERRIDING SYSTEM VALUE VALUES
+( 'Prepaid'),
+( 'Postpaid');
 
-INSERT INTO product_categories (id, product_category_name) OVERRIDING SYSTEM VALUE VALUES
-(1, 'Game Top Up'),
-(2, 'Pulsa & Data'),
-(3, 'E-Wallet'),
-(4, 'Tagihan PLN');
+INSERT INTO product_categories ( product_category_name) OVERRIDING SYSTEM VALUE VALUES
+( 'Game Top Up'),
+( 'Pulsa & Data'),
+( 'E-Wallet'),
+( 'PLN');
 
-INSERT INTO product_references (id, product_reference_code, product_reference_name, created_at, updated_at) OVERRIDING SYSTEM VALUE VALUES
-(1, 'ref_tsel', 'TELKOMSEL', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')),
-(2, 'ref_isat', 'INDOSAT', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')),
-(3, 'ref_three', 'THREE', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')),
-(4, 'ref_axis', 'AXIS', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')),
-(5, 'ref_smart', 'SMARTFREN', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')),
-(6, 'ref_xl', 'XL', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')),
-(7, 'ref_byu', 'BY.U', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')),
-(8, 'ref_mlbb', 'MOBILE LEGEND', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')),
-(9, 'ref_genshin', 'GENSHIN IMPACT', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')),
-(10, 'ref_ff', 'FREE FIRE', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'));
+INSERT INTO product_references ( product_reference_code, product_reference_name, created_at, updated_at) OVERRIDING SYSTEM VALUE VALUES
+( 'ref_tsel', 'TELKOMSEL', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')),
+( 'ref_isat', 'INDOSAT', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')),
+( 'ref_three', 'THREE', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')),
+( 'ref_axis', 'AXIS', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')),
+( 'ref_smart', 'SMARTFREN', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')),
+( 'ref_xl', 'XL', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')),
+( 'ref_byu', 'BY.U', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')),
+( 'ref_mlbb', 'MOBILE LEGEND', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')),
+( 'ref_genshin', 'GENSHIN IMPACT', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')),
+( 'ref_ff', 'FREE FIRE', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')),
+( 'ref_pubg', 'PUBG ID', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')),
+( 'ref_ragnarok', 'RAGNAROK', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')),
+( 'ref_pb', 'POINT BLANK', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')),
+( 'ref_speed_drifters', 'Speed Drifters', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')),
+( 'ref_aof', 'Arena of Valor', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')),
+( 'ref_valoran', 'Valorant', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')),
+( 'ref_steam_wallet', 'Steam Sea', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')),
+( 'ref_garena', 'Garena', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'));
 
 INSERT INTO product_prefixes (product_reference_id, prefix_number, created_at, updated_at) VALUES
 (1, '08120', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')), (1, '08121', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')), (1, '08122', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')), (1, '08123', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')), (1, '08124', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')),
@@ -556,20 +566,99 @@ INSERT INTO product_prefixes (product_reference_id, prefix_number, created_at, u
 (7, '08515', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')), (7, '08516', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')), (7, '08517', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')), (7, '08518', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')), (7, '08519', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'));
 
 -- Master Data Payment Methods
-INSERT INTO payment_methods (id, method_code, method_name, created_at, updated_at) OVERRIDING SYSTEM VALUE VALUES
-(1, 'DEPOSIT', 'Saldo Deposit internal', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')),
-(2, 'VIRTUAL_ACCOUNT', 'Virtual Account Transfer', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')),
-(3, 'QRIS', 'QR Code QRIS', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')),
-(4, 'E_WALLET', 'Dompet Digital / E-Wallet', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'));
+INSERT INTO payment_methods ( method_code, method_name, created_at, updated_at) OVERRIDING SYSTEM VALUE VALUES
+( 'DEPOSIT', 'Saldo Deposit internal', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')),
+( 'VIRTUAL_ACCOUNT', 'Virtual Account Transfer', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')),
+( 'QRIS', 'QR Code QRIS', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')),
+( 'E_WALLET', 'Dompet Digital / E-Wallet', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'));
 
 -- Master Data Payment Channels
-INSERT INTO payment_channels (id, payment_method_id, channel_code, channel_name, fee_type, fee_value, is_active, created_at, updated_at) OVERRIDING SYSTEM VALUE VALUES
+INSERT INTO payment_channels ( payment_method_id, channel_code, channel_name, fee_type, fee_value, is_active, created_at, updated_at) OVERRIDING SYSTEM VALUE VALUES
 -- Jalur potong saldo deposit (Utamanya untuk mitra H2H / Member Premium)
-(1, 1, 'BALANCE_INTERNAL', 'Saldo Deposit Akun', 'FIXED', 0.00, true, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')),
+( 1, 'BALANCE_INTERNAL', 'Saldo Deposit Akun', 'FIXED', 0.00, true, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')),
 -- Jalur Ritel Web Top Up via Virtual Account (Fee flat per transaksi)
-(2, 2, 'BCA_VA', 'BCA Virtual Account', 'FIXED', 4000.00, true, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')),
-(3, 2, 'MANDIRI_VA', 'Mandiri Virtual Account', 'FIXED', 3500.00, true, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')),
+( 2, 'BCA_VA', 'BCA Virtual Account', 'FIXED', 4000.00, true, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')),
+( 2, 'MANDIRI_VA', 'Mandiri Virtual Account', 'FIXED', 3500.00, true, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')),
 -- Jalur Ritel Web Top Up via QRIS (Fee persentase MDR dari nilai transaksi)
-(4, 3, 'QRIS_GATEWAY', 'QRIS Dana/LinkAja (All Shopee/Gopay)', 'PERCENTAGE', 0.70, true, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')), -- 0.7% MDR
+( 3, 'QRIS_GATEWAY', 'QRIS Dana/LinkAja (All Shopee/Gopay)', 'PERCENTAGE', 0.70, true, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')), -- 0.7% MDR
 -- Jalur Ritel via E-Wallet Direct Link
-(5, 4, 'OVO_DIRECT', 'OVO Instant Payment', 'PERCENTAGE', 1.50, true, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')); -- 1.5% Fee
+( 4, 'OVO_DIRECT', 'OVO Instant Payment', 'PERCENTAGE', 1.50, true, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')); -- 1.5% Fee
+
+-- Insert Test Provider
+INSERT INTO providers ( provider_name, is_active, created_at, created_by, updated_at, updated_by) OVERRIDING SYSTEM VALUE VALUES
+('IAK Provider', true, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system');
+
+-- Insert Test Product ML_86
+INSERT INTO products ( product_reference_id, product_type_id, product_category_id, product_code, product_name, is_active, created_at, created_by, updated_at, updated_by) OVERRIDING SYSTEM VALUE VALUES
+ (8, 1, 1, 'ML_86', 'Mobile Legends 86 Diamonds', true, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system'),
+ (17, 1, 1, "steam600k", "Steam Wallet Code 600K", true,TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "system",TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "system"),
+ (17, 1, 1, "steam400k", "Steam Wallet Code 400K", true,TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "system",TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "system"),
+ (17, 1, 1, "steam250k", "Steam Wallet Code 250K", true,TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "system",TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "system"),
+ (17, 1, 1, "steam120k", "Steam Wallet Code 120K", true,TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "system",TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "system"),
+ (17, 1, 1, "steam90k", "Steam Wallet Code 90K", true,TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "system",TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "system"),
+ (17, 1, 1, "steam60k", "Steam Wallet Code 60K", true,TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "system",TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "system"),
+ (17, 1, 1, "steam45k", "Steam Wallet Code 45K", true,TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "sys",TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "sys"),
+ (17, 1, 1, "steam12k", "Steam Wallet Code 12K", true,TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "sys",TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "sys"),
+ (17, 1, 1, "steam8k", "Steam Wallet Code 8K", true,TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "sys",TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "sys"),
+ (17, 1, 1, "steam6k", "Steam Wallet Code 6K", true,TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "sys",TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "sys"),
+ (16, 1, 1, "valorant11KP", "Valorant 11.000 P", true,TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "sys",TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "sys"),
+ (16, 1, 1, "valorant5350P", "Valorant 5.350 P", true,TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "sys",TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "sys"),
+ (16, 1, 1, "valorant4125P", "Valorant 4.125 P", true,TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "sys",TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "sys"),
+ (16, 1, 1, "valorant3650P", "Valorant 3.650 P", true,TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "sys",TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "sys"),
+ (16, 1, 1, "valorant2050P", "Valorant 2.050 P", true,TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "sys",TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "sys"),
+ (16, 1, 1, "valorant1KP", "Valorant 1.000 P", true,TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "sys",TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "sys"),
+ (16, 1, 1, "valoran475P", "Valorant 475 P", true,TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "sys",TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "sys"),
+ (12, 1, 1, "ragnarok18bcc", "Ragnarok 18 BCC", true,TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "sys",TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "sys"),
+ (12, 1, 1, "ragnarog12bcc", "Ragnarok 12 BCC", true,TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "sys",TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "sys"),
+ (12, 1, 1, "ragnarok6bcc", "Ragnarok 6 BCC", true,TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "sys",TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "sys"),
+ (10, 1, 1, "FF_12", "Free Fire 12 Diamonds", true,TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "sys",TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "sys"),
+ (10, 1, 1, "FF_5", "Free Fire 5 Diamonds", true,TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "sys",TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "sys"),
+ (10, 1, 1, "FF_10", "Free Fire 10 Diamonds", true,TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "sys",TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "sys"),
+ (8, 1, 1, "ML_10", "Mobile Legends 10 Diamonds", true,TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "sys",TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "sys"),
+ (8, 1, 1, "ML_5", "Mobile Legends 5 Diamonds", true,TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "sys",TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "sys"),
+ (8, 1, 1, "ML_3", "Mobile Legends 3 Diamonds", true,TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "sys",TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "sys"),
+ (2, 1, 2, "PI5K", "Pulsa Isat 5K", true,TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "sys",TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "sys"),
+ (2, 1, 2, "PI10K", "Pulsa Isat 10K", true,TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "sys",TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "sys"),
+ (2, 1, 2, "PI50K", "Pulsa Isat 50K", true,TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "sys",TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "sys"),
+ (2, 1, 2, "PI100K", "Pulsa Isat 100K", true,TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "sys",TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "sys"),
+ (2, 1, 1, "PT100K", "Pulsa Telkomsel 100K", true,TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "sys",TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "sys"),
+ (2, 1, 1, "PT50K", "Pulsa Telkomsel 50K", true,TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "sys",TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "sys"),
+ (2, 1, 1, "PT10K", "Pulsa Telkomsel 10K", true,TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "sys",TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "sys"),
+ (2, 1, 1, "PT5K", "Pulsa Telkomsel 5K", true,TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "sys",TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "sys");
+
+INSERT INTO product_segments ( segment_name, product_id, product_price, admin_fee, merchant_fee, created_at, created_by, updated_at, updated_by) OVERRIDING SYSTEM VALUE VALUES
+( 'Open_Biller', 1, 20000.00, 1000.00, 0.00, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system'),
+( 'Public_Retail', 1, 20000.00, 1000.00, 0.00, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system'),
+( 'Gold_Reseller', 1, 19000.00, 500.00, 0.00, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system'),
+( 'H2H_Partner', 1, 18500.00, 200.00, 0.00, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system');
+
+-- Insert Product Provider
+INSERT INTO product_providers (provider_id, product_provider_code, provider_price, provider_admin_fee, provider_merchant_fee, provider_index, is_available, created_at, created_by, updated_at, updated_by) VALUES
+(1, 'ML_86_IAK', 18000.00, 0.00, 0.00, 1, true, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system'),
+
+(1, "hsteam400000", 400000, 0, 0, 1, true,TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "SYSTEM_SEED",TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "SYSTEM_SEED"),
+(1, "hsteam250000", 250000, 0, 0, 1, true,TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "SYSTEM_SEED",TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "SYSTEM_SEED"),
+(1, "hsteam120000", 120000, 0, 0, 1, true,TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "SYSTEM_SEED",TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "SYSTEM_SEED"),
+(1, "hsteam90000", 90000, 0, 0, 1, true,TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "SYSTEM_SEED",TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "SYSTEM_SEED"),
+(1, "hsteam60000", 60000, 0, 0, 1, true,TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "SYSTEM_SEED",TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "SYSTEM_SEED"),
+(1, "hsteam45000", 45000, 0, 0, 1, true,TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "SYSTEM_SEED",TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "SYSTEM_SEED"),
+(1, "hsteam12000", 12000, 0, 0, 1, true,TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "SYSTEM_SEED",TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "SYSTEM_SEED"),
+(1, "hsteam8000", 9500, 0, 0, 1, true,TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "SYSTEM_SEED",TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "SYSTEM_SEED"),
+(1, "hsteam6000", 7000, 0, 0, 1, true,TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "SYSTEM_SEED",TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "SYSTEM_SEED"),
+(1, "valorant11000", 1030000, 0, 0, 1, true,TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "admin",TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "admin"),
+(1, "valorant5350", 525000, 0, 0, 1, true,TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "admin",TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "admin"),
+(1, "valorant4125", 418000, 0, 0, 1, true,TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "admin",TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "admin"),
+(1, "valorant3650", 368800, 0, 0, 1, true,TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "admin",TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "admin"),
+(1, "valorant2050", 212400, 0, 0, 1, true,TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "admin",TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "admin"),
+(1, "valorant1000", 106200, 0, 0, 1, true,TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "admin",TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "admin"),
+(1, "valorant475", 53400, 0, 0, 1, true,TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "admin",TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "admin"),
+(1, "ragnarokbcc18", 45000, 0, 0, 1, true,TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "admin",TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "admin"),
+(1, "ragnarokbcc12", 30000, 0, 0, 1, true,TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "admin",TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "admin"),
+(1, "ragnarokbcc6", 15000, 0, 0, 1, true,TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "admin",TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "admin"),
+(1, "freefire12", 1940, 0, 0, 1, true,TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "admin",TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "admin"),
+(1, "freefire10", 1800, 0, 0, 1, true,TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "admin",TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "admin"),
+(1, "freefire5", 970, 0, 0, 1, true,TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "admin",TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "admin"),
+(1, "hmobilelegend10", 3100, 0, 0, 1, true,TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "admin",TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "admin"),
+(1, "hmobilelegend5", 1620, 0, 0, 1, true,TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "admin",TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "admin"),
+(1, "hmobilelegend3", 1100, 0, 0, 1, true,TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "admin",TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), "admin")
+ON CONFLICT DO NOTHING;

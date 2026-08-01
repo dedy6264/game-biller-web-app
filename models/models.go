@@ -205,8 +205,8 @@ type ProductProvider struct {
 
 type ProductSegment struct {
 	ID                         int64   `json:"id"`
-	SegmentID                  *int64  `json:"segment_id,omitempty"`
-	ProductProviderID          *int64  `json:"product_provider_id,omitempty"`
+	SegmentID                  int64   `json:"segment_id,omitempty"`
+	ProductProviderID          int64   `json:"product_provider_id,omitempty"`
 	SegmentName                string  `json:"segment_name"` // Public_Retail, Gold_Reseller, H2H_Partner
 	ProductID                  int64   `json:"product_id"`
 	ProductName                string  `json:"product_name"`
@@ -284,6 +284,7 @@ type Transaction struct {
 	TotalAmount                float64 `json:"total_amount"`
 	CustomerID                 string  `json:"customer_id"`
 	OtherCustomerID            string  `json:"other_customer_id"`
+	CustomerPhone              string  `json:"customer_phone,omitempty"`
 	ReferenceNumberInternal    string  `json:"reference_number_internal"`
 	ReferenceNumberMerchant    string  `json:"reference_number_merchant"`
 	ReferenceNumberProvider    string  `json:"reference_number_provider"`
@@ -572,6 +573,7 @@ type TransactionFilters struct {
 	ProductCode             string  `json:"product_code"`
 	CustomerID              string  `json:"customer_id"`
 	OtherCustomerID         string  `json:"other_customer_id"`
+	CustomerPhone           string  `json:"customer_phone,omitempty"`
 	StatusCode              string  `json:"status_code"`
 	ReferenceNumberInternal string  `json:"reference_number_internal"`
 	ReferenceNumberMerchant *string `json:"reference_number_merchant"`

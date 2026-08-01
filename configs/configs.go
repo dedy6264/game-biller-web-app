@@ -37,6 +37,7 @@ var (
 	HOST_WORKER          = GetEnv("HOST_WORKER")
 	ENDPOINT_IAK_PAYMENT = GetEnv("ENDPOINT_IAK_PAYMENT")
 	ENDPOINT_IAK_INQUIRY = GetEnv("ENDPOINT_IAK_INQUIRY")
+	DEFAULT_MID          = GetEnv("DEFAULT_MID")
 )
 
 func GetLocation() *time.Location {
