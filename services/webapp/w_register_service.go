@@ -52,11 +52,11 @@ func Register(c echo.Context) error {
 
 	// Lookup segment Public_Retail untuk auto-binding saat register
 	var publicRetailSegmentID int64
-	seg, err := repositories.GetSegmentByName(db, "Public_Retail")
+	seg, err := repositories.GetSegmentByID(db, 2)
 	if err == nil {
 		publicRetailSegmentID = seg.ID
 	} else {
-		helpers.ProcessLogger(c, svc, err.Error(), "Public_Retail segment not found, proceeding without segment binding")
+		helpers.ProcessLogger(c, svc, err.Error(), "Retail Biller segment not found, proceeding without segment binding")
 	}
 
 	now := time.Now().Format(time.RFC3339)
@@ -100,7 +100,7 @@ func Register(c echo.Context) error {
 			UserID:       uid,
 			SegmentID:    publicRetailSegmentID,
 			MerchantName: req.Name + " Store",
-			MerchantType: "guest_retail",
+			MerchantType: "Retail Biller",
 			Status:       "active",
 			CreatedAt:    now,
 			CreatedBy:    "system",

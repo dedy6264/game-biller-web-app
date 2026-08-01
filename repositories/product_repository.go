@@ -840,7 +840,7 @@ func GetProductSegmentsByRefCode(exec QueryExecutor, refCode string) ([]Referenc
 
 // GetProductSegmentsByRefCodeAndSegment fetches segment pricing filtered by a specific segment name.
 // Used when the caller is an authenticated merchant — returns only products available in their segment.
-func GetProductSegmentsByRefCodeAndSegment(exec QueryExecutor, refCode string, segmentName string) ([]ReferenceCodeSegmentResult, error) {
+func GetProductSegmentsByRefCodeAndSegment(exec QueryExecutor, refCode string, segmentID int64) ([]ReferenceCodeSegmentResult, error) {
 	query := `SELECT p.product_code, p.product_name, p.is_active, ps.segment_name, ps.product_price, ps.admin_fee, ps.merchant_fee 
 	          FROM products p 
 	          JOIN product_references pr ON p.product_reference_id = pr.id 
@@ -850,8 +850,8 @@ func GetProductSegmentsByRefCodeAndSegment(exec QueryExecutor, refCode string, s
 	if refCode != "" {
 		query += ` and pr.product_reference_code = '` + refCode + `'`
 	}
-	if segmentName != "" {
-		query += ` AND ps.segment_name = '` + segmentName + `'`
+	if segmentID != 0 {
+		query += ` AND ps.segment_id = ` + strconv.FormatInt(segmentID, 10)
 	}
 	query += ` ORDER BY p.product_code ASC`
 	rows, err := exec.Query(query)

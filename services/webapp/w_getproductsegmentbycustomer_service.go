@@ -44,16 +44,16 @@ func GetProductSegmentByCustomer(c echo.Context) error {
 	}
 
 	// 2. Coba resolve segment dari JWT (opsional)
-	segmentName, authenticated := resolveSegmentName(c, nil)
+	segmentID, authenticated := resolveSegmentName(c, nil)
 
 	var list interface{}
 
 	if authenticated {
 		// User sudah login → tampilkan produk sesuai segment merchantnya saja
-		list, err = repositories.GetProductSegmentsByRefCodeAndSegment(db, ref.ProductReferenceCode, segmentName)
+		list, err = repositories.GetProductSegmentsByRefCodeAndSegment(db, ref.ProductReferenceCode, segmentID)
 	} else {
 		// Guest / tidak login → tampilkan Public_Retail
-		list, err = repositories.GetProductSegmentsByRefCodeAndSegment(db, ref.ProductReferenceCode, "Public_Retail")
+		list, err = repositories.GetProductSegmentsByRefCodeAndSegment(db, ref.ProductReferenceCode, 1)
 	}
 
 	if err != nil {
@@ -63,8 +63,8 @@ func GetProductSegmentByCustomer(c echo.Context) error {
 
 	// 3. Return resolved reference code beserta daftar produk di segment yang sesuai
 	return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeSuccess, map[string]any{
-		"reference_code":   ref.ProductReferenceCode,
-		"segment":          segmentName,
+		"reference_code": ref.ProductReferenceCode,
+		// "segment":          list[0].SegmentName,
 		"is_authenticated": authenticated,
 		"product_segments": list,
 	}))

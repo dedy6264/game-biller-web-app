@@ -12,23 +12,18 @@ import (
 // resolveSegmentName resolves the merchant segment name from JWT claims.
 // Returns the segment name and true if authenticated, or empty string and false if not.
 func resolveSegmentName(c echo.Context, db interface { /* QueryExecutor */
-}) (string, bool) {
+}) (int64, bool) {
 	claims, ok := helpers.GetClaims(c)
 	if !ok || claims.MerchantID == 0 {
-		return "", false
+		return 0, false
 	}
 	merchant, err := repositories.GetMerchantByID(connections.DBconn(), claims.MerchantID)
 	if err != nil || merchant.Status != "active" {
-		return "", false
+		return 0, false
 	}
-	switch merchant.MerchantType {
-	case "member_premium":
-		return "Gold_Reseller", true
-	case "h2h_api":
-		return "H2H_Partner", true
-	default: // guest_retail dan semua tipe lainnya
-		return "Public_Retail", true
-	}
+
+	return merchant.SegmentID, true
+
 }
 
 func GetProductSegment(c echo.Context) error {
@@ -53,7 +48,7 @@ func GetProductSegment(c echo.Context) error {
 	db := connections.DBconn()
 
 	// Coba resolve segment dari JWT (opsional)
-	segmentName, authenticated := resolveSegmentName(c, nil)
+	segmentID, authenticated := resolveSegmentName(c, nil)
 
 	var (
 		list interface{}
@@ -62,10 +57,10 @@ func GetProductSegment(c echo.Context) error {
 
 	if authenticated {
 		// User sudah login → tampilkan produk sesuai segment merchantnya saja
-		list, err = repositories.GetProductSegmentsByRefCodeAndSegment(db, refCode, segmentName)
+		list, err = repositories.GetProductSegmentsByRefCodeAndSegment(db, refCode, segmentID)
 	} else {
 		// Guest / tidak login → tampilkan semua segment (Public_Retail)
-		list, err = repositories.GetProductSegmentsByRefCodeAndSegment(db, refCode, "Public_Retail")
+		list, err = repositories.GetProductSegmentsByRefCodeAndSegment(db, refCode, 1)
 	}
 
 	if err != nil {
