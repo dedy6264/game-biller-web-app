@@ -691,11 +691,13 @@ func GetProductProvidersList(exec QueryExecutor, start, length int, filters mode
 // === PRODUCT SEGMENTS REPOSITORY ===
 
 func CreateProductSegment(exec QueryExecutor, ps models.ProductSegment) (int64, error) {
-	query := `INSERT INTO product_segments (segment_id, product_provider_id, segment_name, product_name, provider_name, product_provider_code, product_provider_name, product_id, product_price, admin_fee, merchant_fee, product_provider_price, product_provider_admin_fee, product_provider_merchant_fee, created_at, created_by, updated_at, updated_by)
-	          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`
+	var index string
+	index = strconv.Itoa(int(ps.SegmentID)) + "_" + strconv.Itoa(int(ps.ProductProviderID))
+	query := `INSERT INTO product_segments (segment_id, product_provider_id, segment_name, product_name, provider_name, product_provider_code, product_provider_name, product_id, product_price, admin_fee, merchant_fee, product_provider_price, product_provider_admin_fee, product_provider_merchant_fee, created_at, created_by, updated_at, updated_by, product_segment_index)
+	          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`
 	query = helpers.QuerySupport(query)
 	var id int64
-	err := exec.QueryRow(query, ps.SegmentID, ps.ProductProviderID, ps.SegmentName, ps.ProductName, ps.ProviderName, ps.ProductProviderCode, ps.ProductProviderName, ps.ProductID, ps.ProductPrice, ps.AdminFee, ps.MerchantFee, ps.ProductProviderPrice, ps.ProductProviderAdminFee, ps.ProductProviderMerchantFee, ps.CreatedAt, ps.CreatedBy, ps.UpdatedAt, ps.UpdatedBy).Scan(&id)
+	err := exec.QueryRow(query, ps.SegmentID, ps.ProductProviderID, ps.SegmentName, ps.ProductName, ps.ProviderName, ps.ProductProviderCode, ps.ProductProviderName, ps.ProductID, ps.ProductPrice, ps.AdminFee, ps.MerchantFee, ps.ProductProviderPrice, ps.ProductProviderAdminFee, ps.ProductProviderMerchantFee, ps.CreatedAt, ps.CreatedBy, ps.UpdatedAt, ps.UpdatedBy, index).Scan(&id)
 	if err != nil {
 		return 0, err
 	}
@@ -727,9 +729,11 @@ func GetProductSegmentByProductAndSegment(exec QueryExecutor, productID int64, s
 }
 
 func UpdateProductSegment(exec QueryExecutor, ps models.ProductSegment) error {
-	query := `UPDATE product_segments SET segment_id = ?, product_provider_id = ?, segment_name = ?, product_name = ?, provider_name = ?, product_provider_code = ?, product_provider_name = ?, product_id = ?, product_price = ?, admin_fee = ?, merchant_fee = ?, product_provider_price = ?, product_provider_admin_fee = ?, product_provider_merchant_fee = ?, updated_at = ?, updated_by = ? WHERE id = ?`
+	var index string
+	index = strconv.Itoa(int(ps.SegmentID)) + "_" + strconv.Itoa(int(ps.ProductProviderID))
+	query := `UPDATE product_segments SET segment_id = ?, product_provider_id = ?, segment_name = ?, product_name = ?, provider_name = ?, product_provider_code = ?, product_provider_name = ?, product_id = ?, product_price = ?, admin_fee = ?, merchant_fee = ?, product_provider_price = ?, product_provider_admin_fee = ?, product_provider_merchant_fee = ?, updated_at = ?, updated_by = ?, product_segment_index = ? WHERE id = ?`
 	query = helpers.QuerySupport(query)
-	_, err := exec.Exec(query, ps.SegmentID, ps.ProductProviderID, ps.SegmentName, ps.ProductName, ps.ProviderName, ps.ProductProviderCode, ps.ProductProviderName, ps.ProductID, ps.ProductPrice, ps.AdminFee, ps.MerchantFee, ps.ProductProviderPrice, ps.ProductProviderAdminFee, ps.ProductProviderMerchantFee, ps.UpdatedAt, ps.UpdatedBy, ps.ID)
+	_, err := exec.Exec(query, ps.SegmentID, ps.ProductProviderID, ps.SegmentName, ps.ProductName, ps.ProviderName, ps.ProductProviderCode, ps.ProductProviderName, ps.ProductID, ps.ProductPrice, ps.AdminFee, ps.MerchantFee, ps.ProductProviderPrice, ps.ProductProviderAdminFee, ps.ProductProviderMerchantFee, ps.UpdatedAt, ps.UpdatedBy, index, ps.ID)
 	return err
 }
 
