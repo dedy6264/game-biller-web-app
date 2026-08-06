@@ -252,6 +252,23 @@ CREATE TABLE payment_channels (
   updated_by VARCHAR(255)
 );
 
+CREATE TABLE payment_segments (
+  id BIGSERIAL PRIMARY KEY,
+  segment_id BIGINT REFERENCES segments(id) ON DELETE CASCADE,
+  payment_method_id BIGINT REFERENCES payment_methods(id) ON DELETE CASCADE,
+  payment_channel_id BIGINT REFERENCES payment_channels(id) ON DELETE CASCADE,
+  segment_name VARCHAR(255),
+  method_code VARCHAR(255),
+  channel_code VARCHAR(255),
+  channel_name VARCHAR(255),
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at VARCHAR(255),
+  created_by VARCHAR(255),
+  updated_at VARCHAR(255),
+  updated_by VARCHAR(255),
+  CONSTRAINT unique_segment_payment_channel UNIQUE (segment_id, payment_channel_id)
+);
+
 -- 6. CORE TRANSACTION
 CREATE TABLE transactions (
   id BIGSERIAL PRIMARY KEY,
@@ -661,3 +678,29 @@ INSERT INTO product_providers (provider_id, product_provider_code, product_provi
 (1, 'hmobilelegend10', 3100, 0, 0, 1, true, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'admin', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'admin'),
 (1, 'hmobilelegend5', 1620, 0, 0, 1, true, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'admin', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'admin'),
 (1, 'hmobilelegend3', 1100, 0, 0, 1, true, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'admin', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'admin');
+
+-- Insert Payment Segments (Mapping Payment Channels per Segment)
+INSERT INTO payment_segments (segment_id, payment_method_id, payment_channel_id, segment_name, method_code, channel_code, channel_name, is_active, created_at, created_by, updated_at, updated_by) VALUES
+-- Segment 1: Open_Biller (All channels)
+(1, 1, 1, 'Open_Biller', 'DEPOSIT', 'BALANCE_INTERNAL', 'Saldo Deposit Akun', true, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system'),
+(1, 2, 2, 'Open_Biller', 'VIRTUAL_ACCOUNT', 'BCA_VA', 'BCA Virtual Account', true, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system'),
+(1, 2, 3, 'Open_Biller', 'VIRTUAL_ACCOUNT', 'MANDIRI_VA', 'Mandiri Virtual Account', true, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system'),
+(1, 3, 4, 'Open_Biller', 'QRIS', 'QRIS_GATEWAY', 'QRIS Dana/LinkAja (All Shopee/Gopay)', true, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system'),
+(1, 4, 5, 'Open_Biller', 'E_WALLET', 'OVO_DIRECT', 'OVO Instant Payment', true, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system'),
+
+-- Segment 2: Public_Retail (Web Retail - Payment Gateway channels)
+(2, 2, 2, 'Public_Retail', 'VIRTUAL_ACCOUNT', 'BCA_VA', 'BCA Virtual Account', true, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system'),
+(2, 2, 3, 'Public_Retail', 'VIRTUAL_ACCOUNT', 'MANDIRI_VA', 'Mandiri Virtual Account', true, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system'),
+(2, 3, 4, 'Public_Retail', 'QRIS', 'QRIS_GATEWAY', 'QRIS Dana/LinkAja (All Shopee/Gopay)', true, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system'),
+(2, 4, 5, 'Public_Retail', 'E_WALLET', 'OVO_DIRECT', 'OVO Instant Payment', true, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system'),
+
+-- Segment 3: Gold_Reseller (Dashboard Reseller - Deposit & Payment Gateways)
+(3, 1, 1, 'Gold_Reseller', 'DEPOSIT', 'BALANCE_INTERNAL', 'Saldo Deposit Akun', true, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system'),
+(3, 2, 2, 'Gold_Reseller', 'VIRTUAL_ACCOUNT', 'BCA_VA', 'BCA Virtual Account', true, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system'),
+(3, 2, 3, 'Gold_Reseller', 'VIRTUAL_ACCOUNT', 'MANDIRI_VA', 'Mandiri Virtual Account', true, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system'),
+(3, 3, 4, 'Gold_Reseller', 'QRIS', 'QRIS_GATEWAY', 'QRIS Dana/LinkAja (All Shopee/Gopay)', true, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system'),
+(3, 4, 5, 'Gold_Reseller', 'E_WALLET', 'OVO_DIRECT', 'OVO Instant Payment', true, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system'),
+
+-- Segment 4: H2H_Partner (API Partner - Deposit Balance ONLY)
+(4, 1, 1, 'H2H_Partner', 'DEPOSIT', 'BALANCE_INTERNAL', 'Saldo Deposit Akun', true, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system')
+ON CONFLICT DO NOTHING;

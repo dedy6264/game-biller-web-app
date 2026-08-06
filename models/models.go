@@ -254,6 +254,22 @@ type PaymentChannel struct {
 	MethodCode      string  `json:"method_code,omitempty"`
 }
 
+type PaymentSegment struct {
+	ID               int64  `json:"id"`
+	SegmentID        int64  `json:"segment_id"`
+	PaymentMethodID  int64  `json:"payment_method_id"`
+	PaymentChannelID int64  `json:"payment_channel_id"`
+	SegmentName      string `json:"segment_name,omitempty"`
+	MethodCode       string `json:"method_code,omitempty"`
+	ChannelCode      string `json:"channel_code,omitempty"`
+	ChannelName      string `json:"channel_name,omitempty"`
+	IsActive         bool   `json:"is_active"`
+	CreatedAt        string `json:"created_at"`
+	CreatedBy        string `json:"created_by"`
+	UpdatedAt        string `json:"updated_at"`
+	UpdatedBy        string `json:"updated_by"`
+}
+
 // 6. CORE TRANSACTION
 type Transaction struct {
 	ID                         int64   `json:"id"`
@@ -318,6 +334,13 @@ type RegisterRequest struct {
 type LoginRequest struct {
 	Username string `json:"username" validate:"required"` // Can be Email or Phone Number
 	Password string `json:"password" validate:"required"`
+}
+
+type UpdatePasswordRequest struct {
+	UserID          int64  `json:"user_id,omitempty"`
+	OldPassword     string `json:"old_password"`
+	NewPassword     string `json:"new_password" validate:"required,min=8"`
+	ConfirmPassword string `json:"confirm_password" validate:"required"`
 }
 
 type InquiryRequest struct {
@@ -603,6 +626,25 @@ type RequestSegments struct {
 type SegmentFilters struct {
 	ID          int64  `json:"id"`
 	SegmentName string `json:"segment_name"`
+}
+
+type RequestPaymentSegments struct {
+	Draw    int                   `json:"draw"`
+	Search  string                `json:"search"`
+	Start   int                   `json:"start"`
+	Length  int                   `json:"length"`
+	Order   string                `json:"order"`
+	Sort    string                `json:"sort"`
+	Filters PaymentSegmentFilters `json:"filters"`
+}
+
+type PaymentSegmentFilters struct {
+	ID               int64  `json:"id"`
+	SegmentID        int64  `json:"segment_id"`
+	PaymentMethodID  int64  `json:"payment_method_id"`
+	PaymentChannelID int64  `json:"payment_channel_id"`
+	ChannelCode      string `json:"channel_code"`
+	IsActive         string `json:"is_active"`
 }
 
 type ReqHeader struct {

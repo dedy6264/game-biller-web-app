@@ -48,6 +48,7 @@ func privateWebApp(a *echo.Group) {
 	a.POST("/inquiry", webapp.Inquiry)
 	a.POST("/payment", webapp.Payment)
 	a.POST("/history", webapp.TransactionHistory)
+	a.POST("/update-password", webapp.UpdatePassword)
 }
 
 func dashboardRoutes(a *echo.Group) {
@@ -73,6 +74,7 @@ func dashboardRoutes(a *echo.Group) {
 	a.POST("/users/list", dashboard.AdminGetUsers)
 	a.POST("/users/create", dashboard.AdminCreateUser)
 	a.POST("/users/update", dashboard.AdminUpdateUser)
+	a.POST("/users/update-password", dashboard.AdminUpdatePassword)
 	a.POST("/users/delete", dashboard.AdminDeleteUser)
 
 	// Merchants CRUD
@@ -156,6 +158,12 @@ func dashboardRoutes(a *echo.Group) {
 	a.POST("/payment-channels/create", dashboard.AdminCreatePaymentChannel)
 	a.POST("/payment-channels/update", dashboard.AdminUpdatePaymentChannel)
 	a.POST("/payment-channels/delete", dashboard.AdminDeletePaymentChannel)
+
+	// Payment Segments CRUD
+	a.POST("/payment-segments/list", dashboard.AdminGetPaymentSegments)
+	a.POST("/payment-segments/create", dashboard.AdminCreatePaymentSegment)
+	a.POST("/payment-segments/update", dashboard.AdminUpdatePaymentSegment)
+	a.POST("/payment-segments/delete", dashboard.AdminDeletePaymentSegment)
 
 	// Saving Accounts CRUD
 	a.POST("/saving-accounts/list", dashboard.AdminGetSavingAccounts)

@@ -383,6 +383,128 @@
 						}
 					},
 					"response": []
+				},
+				{
+					"name": "Update Password (WebApp)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{user_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"old_password\": \"password123\",\n    \"new_password\": \"password123new\",\n    \"confirm_password\": \"password123new\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/webapp/update-password",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"webapp",
+								"update-password"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Public Inquiry (Unsubscribe)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"product_code\": \"VALORANT_1000\",\n    \"customer_id\": \"USER123\",\n    \"other_customer_id\": \"TAG456\",\n    \"customer_phone\": \"081234567890\",\n    \"reference_number_merchant\": \"TRX_PUB_001\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/webapp/publicinquiry",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"webapp",
+								"publicinquiry"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Public Payment (Unsubscribe)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"reference_number_internal\": \"TRX_INT_123456\",\n    \"payment_channel_id\": 2\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/webapp/publicpayment",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"webapp",
+								"publicpayment"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Public History (Unsubscribe)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"draw\": 1,\n    \"search\": \"\",\n    \"start\": 0,\n    \"length\": 10,\n    \"sort\": \"desc\",\n    \"order\": \"id\",\n    \"filters\": {\n        \"id\": 0,\n        \"customer_id\": \"USER123\"\n    }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/webapp/publichistory",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"webapp",
+								"publichistory"
+							]
+						}
+					},
+					"response": []
 				}
 			]
 		},
@@ -585,6 +707,45 @@
 										"dashboard",
 										"users",
 										"delete"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Update User Password",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{admin_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"user_id\": 0,\n    \"old_password\": \"password123\",\n    \"new_password\": \"password123new\",\n    \"confirm_password\": \"password123new\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/dashboard/users/update-password",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"dashboard",
+										"users",
+										"update-password"
 									]
 								}
 							},
@@ -2838,6 +2999,167 @@
 										"api",
 										"dashboard",
 										"payment-channels",
+										"delete"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Payment Segments",
+					"item": [
+						{
+							"name": "List Payment Segments",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{admin_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"draw\": 1,\n    \"search\": \"\",\n    \"start\": 0,\n    \"length\": 10,\n    \"sort\": \"desc\",\n    \"order\": \"id\",\n    \"filters\": {\n        \"id\": 0,\n        \"segment_id\": 1,\n        \"payment_method_id\": 0,\n        \"payment_channel_id\": 0,\n        \"channel_code\": \"\",\n        \"is_active\": \"\"\n    }\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/dashboard/payment-segments/list",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"dashboard",
+										"payment-segments",
+										"list"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create Payment Segment",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{admin_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"segment_id\": 1,\n    \"payment_channel_id\": 2,\n    \"is_active\": true\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/dashboard/payment-segments/create",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"dashboard",
+										"payment-segments",
+										"create"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Update Payment Segment",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{admin_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"id\": 1,\n    \"is_active\": true\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/dashboard/payment-segments/update",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"dashboard",
+										"payment-segments",
+										"update"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Delete Payment Segment",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{admin_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"id\": 1\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/dashboard/payment-segments/delete",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"dashboard",
+										"payment-segments",
 										"delete"
 									]
 								}

@@ -71,6 +71,29 @@ func GetMerchantByUserID(exec QueryExecutor, userID int64) (*models.Merchant, er
 	return &m, nil
 }
 
+func GetMerchantByClientKey(exec QueryExecutor, clientKey string) (*models.Merchant, error) {
+	query := `SELECT m.id, m.user_id, m.segment_id, m.merchant_name, m.merchant_type, m.status, m.created_at, m.created_by, m.updated_at, m.updated_by, COALESCE(u.name, ''), COALESCE(u.email, ''), COALESCE(s.segment_name, ''), COALESCE(mac.client_key, ''), COALESCE(mac.whitelist_ips, ''), COALESCE(mac.is_active, false)
+	          FROM merchants m
+	          LEFT JOIN users u ON u.id = m.user_id
+	          LEFT JOIN segments s ON s.id = m.segment_id
+	          JOIN merchant_api_credentials mac ON mac.merchant_id = m.id
+	          WHERE mac.client_key = $1`
+	var m models.Merchant
+	err := exec.QueryRow(query, clientKey).Scan(&m.ID, &m.UserID, &m.SegmentID, &m.MerchantName, &m.MerchantType, &m.Status, &m.CreatedAt, &m.CreatedBy, &m.UpdatedAt, &m.UpdatedBy, &m.UserName, &m.UserEmail, &m.SegmentName, &m.ClientKey, &m.WhitelistIPs, &m.ApiIsActive)
+	if err != nil {
+		return nil, err
+	}
+	if m.ClientKey != "" {
+		m.ApiCredential = &models.MerchantApiCredential{
+			MerchantID:   m.ID,
+			ClientKey:    m.ClientKey,
+			WhitelistIPs: m.WhitelistIPs,
+			IsActive:     m.ApiIsActive,
+		}
+	}
+	return &m, nil
+}
+
 func UpdateMerchant(exec QueryExecutor, m *models.Merchant) error {
 	query := `UPDATE merchants SET segment_id = ?, merchant_name = ?, merchant_type = ?, status = ?, updated_at = ?, updated_by = ? WHERE id = ?`
 	query = helpers.QuerySupport(query)

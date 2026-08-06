@@ -58,6 +58,13 @@ func UpdateUser(exec QueryExecutor, u *models.User) error {
 	return err
 }
 
+func UpdateUserPassword(exec QueryExecutor, userID int64, passwordHash, updatedAt, updatedBy string) error {
+	query := `UPDATE users SET password_hash = ?, updated_at = ?, updated_by = ? WHERE id = ?`
+	query = helpers.QuerySupport(query)
+	_, err := exec.Exec(query, passwordHash, updatedAt, updatedBy, userID)
+	return err
+}
+
 func DeleteUser(exec QueryExecutor, id int64) error {
 	query := `DELETE FROM users WHERE id = $1`
 	_, err := exec.Exec(query, id)
