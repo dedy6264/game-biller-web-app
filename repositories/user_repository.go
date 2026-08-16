@@ -248,12 +248,11 @@ func GetRolesList(exec QueryExecutor, search string, start, length int, order, s
 // === MODEL HAS ROLES REPOSITORY ===
 
 func CreateModelHasRole(exec QueryExecutor, mhr *models.ModelHasRole) (int64, error) {
-	query := `INSERT INTO model_has_roles (user_id, role_id, created_at, created_by) VALUES (?, ?, ?, ?)
-	          ON CONFLICT (user_id) DO UPDATE SET role_id = EXCLUDED.role_id, created_at = EXCLUDED.created_at, created_by = EXCLUDED.created_by
+	query := `INSERT INTO model_has_roles (user_id, role_id, actor_id, created_at, created_by) VALUES (?, ?, ?, ?, ?)
 	          RETURNING id`
 	query = helpers.QuerySupport(query)
 	var id int64
-	err := exec.QueryRow(query, mhr.UserID, mhr.RoleID, mhr.CreatedAt, mhr.CreatedBy).Scan(&id)
+	err := exec.QueryRow(query, mhr.UserID, mhr.RoleID, mhr.ActorID, mhr.CreatedAt, mhr.CreatedBy).Scan(&id)
 	if err != nil {
 		return 0, err
 	}
@@ -261,10 +260,26 @@ func CreateModelHasRole(exec QueryExecutor, mhr *models.ModelHasRole) (int64, er
 	return id, nil
 }
 
+func UpdateModelHasRoleActorID(exec QueryExecutor, mhrID int64, actorID int64) error {
+	query := `UPDATE model_has_roles SET actor_id = ? WHERE id = ?`
+	query = helpers.QuerySupport(query)
+	_, err := exec.Exec(query, actorID, mhrID)
+	return err
+}
+
 func GetModelHasRoleByID(exec QueryExecutor, id int64) (*models.ModelHasRole, error) {
-	query := `SELECT id, user_id, role_id, created_at, created_by FROM model_has_roles WHERE id = $1`
+	query := `SELECT id, user_id, role_id, COALESCE(actor_id, 0), created_at, created_by FROM model_has_roles WHERE id = $1`
 	var mhr models.ModelHasRole
-	err := exec.QueryRow(query, id).Scan(&mhr.ID, &mhr.UserID, &mhr.RoleID, &mhr.CreatedAt, &mhr.CreatedBy)
+	err := exec.QueryRow(query, id).Scan(&mhr.ID, &mhr.UserID, &mhr.RoleID, &mhr.ActorID, &mhr.CreatedAt, &mhr.CreatedBy)
+	if err != nil {
+		return nil, err
+	}
+	return &mhr, nil
+}
+func GetModelHasRoleByUserID(exec QueryExecutor, id int64) (*models.ModelHasRole, error) {
+	query := `SELECT id, user_id, role_id, COALESCE(actor_id, 0), created_at, created_by FROM model_has_roles WHERE user_id = $1`
+	var mhr models.ModelHasRole
+	err := exec.QueryRow(query, id).Scan(&mhr.ID, &mhr.UserID, &mhr.RoleID, &mhr.ActorID, &mhr.CreatedAt, &mhr.CreatedBy)
 	if err != nil {
 		return nil, err
 	}
@@ -304,6 +319,9 @@ func GetModelHasRolesList(exec QueryExecutor, start, length int, filters models.
 	if filters.RoleID != 0 {
 		whr += " AND role_id = " + strconv.FormatInt(filters.RoleID, 10)
 	}
+	if filters.ActorID != 0 {
+		whr += " AND actor_id = " + strconv.FormatInt(filters.ActorID, 10)
+	}
 
 	countQuery := `SELECT COUNT(*) FROM model_has_roles WHERE true` + whr
 	countQuery = helpers.QuerySupport(countQuery)
@@ -312,7 +330,7 @@ func GetModelHasRolesList(exec QueryExecutor, start, length int, filters models.
 		return nil, 0, err
 	}
 
-	query := `SELECT mhr.id, mhr.user_id, mhr.role_id, mhr.created_at, mhr.created_by, COALESCE(u.name, ''), COALESCE(u.email, ''), COALESCE(r.role_name, ''), COALESCE(r.role_code, '')
+	query := `SELECT mhr.id, mhr.user_id, mhr.role_id, COALESCE(mhr.actor_id, 0), mhr.created_at, mhr.created_by, COALESCE(u.name, ''), COALESCE(u.email, ''), COALESCE(r.role_name, ''), COALESCE(r.role_code, '')
 	          FROM model_has_roles mhr
 	          LEFT JOIN users u ON u.id = mhr.user_id
 	          LEFT JOIN roles r ON r.id = mhr.role_id
@@ -331,7 +349,7 @@ func GetModelHasRolesList(exec QueryExecutor, start, length int, filters models.
 	var list []models.ModelHasRole
 	for rows.Next() {
 		var mhr models.ModelHasRole
-		err = rows.Scan(&mhr.ID, &mhr.UserID, &mhr.RoleID, &mhr.CreatedAt, &mhr.CreatedBy, &mhr.UserName, &mhr.UserEmail, &mhr.RoleName, &mhr.RoleCode)
+		err = rows.Scan(&mhr.ID, &mhr.UserID, &mhr.RoleID, &mhr.ActorID, &mhr.CreatedAt, &mhr.CreatedBy, &mhr.UserName, &mhr.UserEmail, &mhr.RoleName, &mhr.RoleCode)
 		if err != nil {
 			return nil, 0, err
 		}

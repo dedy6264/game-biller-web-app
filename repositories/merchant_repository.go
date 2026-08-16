@@ -11,13 +11,13 @@ import (
 // === MERCHANT REPOSITORY ===
 
 func CreateMerchant(exec QueryExecutor, m *models.Merchant) (int64, error) {
-	query := `INSERT INTO merchants (user_id, segment_id, merchant_name, merchant_type, status, created_at, created_by, updated_at, updated_by)
-	          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-	          ON CONFLICT (user_id) DO UPDATE SET segment_id = EXCLUDED.segment_id, merchant_name = EXCLUDED.merchant_name, merchant_type = EXCLUDED.merchant_type, status = EXCLUDED.status, updated_at = EXCLUDED.updated_at, updated_by = EXCLUDED.updated_by
+	query := `INSERT INTO merchants (user_id, agent_id, segment_id, merchant_name, merchant_type, status, created_at, created_by, updated_at, updated_by)
+	          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	          ON CONFLICT (user_id) DO UPDATE SET agent_id = EXCLUDED.agent_id, segment_id = EXCLUDED.segment_id, merchant_name = EXCLUDED.merchant_name, merchant_type = EXCLUDED.merchant_type, status = EXCLUDED.status, updated_at = EXCLUDED.updated_at, updated_by = EXCLUDED.updated_by
 	          RETURNING id`
 	query = helpers.QuerySupport(query)
 	var id int64
-	err := exec.QueryRow(query, m.UserID, m.SegmentID, m.MerchantName, m.MerchantType, m.Status, m.CreatedAt, m.CreatedBy, m.UpdatedAt, m.UpdatedBy).Scan(&id)
+	err := exec.QueryRow(query, m.UserID, m.AgentID, m.SegmentID, m.MerchantName, m.MerchantType, m.Status, m.CreatedAt, m.CreatedBy, m.UpdatedAt, m.UpdatedBy).Scan(&id)
 	if err != nil {
 		return 0, err
 	}
@@ -26,14 +26,17 @@ func CreateMerchant(exec QueryExecutor, m *models.Merchant) (int64, error) {
 }
 
 func GetMerchantByID(exec QueryExecutor, id int64) (*models.Merchant, error) {
-	query := `SELECT m.id, m.user_id, m.segment_id, m.merchant_name, m.merchant_type, m.status, m.created_at, m.created_by, m.updated_at, m.updated_by, COALESCE(u.name, ''), COALESCE(u.email, ''), COALESCE(s.segment_name, ''), COALESCE(mac.client_key, ''), COALESCE(mac.whitelist_ips, ''), COALESCE(mac.is_active, false)
+	query := `SELECT m.id, m.user_id, m.agent_id, m.segment_id, m.merchant_name, m.merchant_type, m.status, m.created_at, m.created_by, m.updated_at, m.updated_by,
+	                 COALESCE(u.name, ''), COALESCE(u.email, ''), COALESCE(s.segment_name, ''),
+	                 COALESCE(a.agent_name, ''), COALESCE(mac.client_key, ''), COALESCE(mac.whitelist_ips, ''), COALESCE(mac.is_active, false)
 	          FROM merchants m
 	          LEFT JOIN users u ON u.id = m.user_id
 	          LEFT JOIN segments s ON s.id = m.segment_id
+	          LEFT JOIN agents a ON a.id = m.agent_id
 	          LEFT JOIN merchant_api_credentials mac ON mac.merchant_id = m.id
 	          WHERE m.id = $1`
 	var m models.Merchant
-	err := exec.QueryRow(query, id).Scan(&m.ID, &m.UserID, &m.SegmentID, &m.MerchantName, &m.MerchantType, &m.Status, &m.CreatedAt, &m.CreatedBy, &m.UpdatedAt, &m.UpdatedBy, &m.UserName, &m.UserEmail, &m.SegmentName, &m.ClientKey, &m.WhitelistIPs, &m.ApiIsActive)
+	err := exec.QueryRow(query, id).Scan(&m.ID, &m.UserID, &m.AgentID, &m.SegmentID, &m.MerchantName, &m.MerchantType, &m.Status, &m.CreatedAt, &m.CreatedBy, &m.UpdatedAt, &m.UpdatedBy, &m.UserName, &m.UserEmail, &m.SegmentName, &m.AgentName, &m.ClientKey, &m.WhitelistIPs, &m.ApiIsActive)
 	if err != nil {
 		return nil, err
 	}
@@ -49,14 +52,17 @@ func GetMerchantByID(exec QueryExecutor, id int64) (*models.Merchant, error) {
 }
 
 func GetMerchantByUserID(exec QueryExecutor, userID int64) (*models.Merchant, error) {
-	query := `SELECT m.id, m.user_id, m.segment_id, m.merchant_name, m.merchant_type, m.status, m.created_at, m.created_by, m.updated_at, m.updated_by, COALESCE(u.name, ''), COALESCE(u.email, ''), COALESCE(s.segment_name, ''), COALESCE(mac.client_key, ''), COALESCE(mac.whitelist_ips, ''), COALESCE(mac.is_active, false)
+	query := `SELECT m.id, m.user_id, m.agent_id, m.segment_id, m.merchant_name, m.merchant_type, m.status, m.created_at, m.created_by, m.updated_at, m.updated_by,
+	                 COALESCE(u.name, ''), COALESCE(u.email, ''), COALESCE(s.segment_name, ''),
+	                 COALESCE(a.agent_name, ''), COALESCE(mac.client_key, ''), COALESCE(mac.whitelist_ips, ''), COALESCE(mac.is_active, false)
 	          FROM merchants m
 	          LEFT JOIN users u ON u.id = m.user_id
 	          LEFT JOIN segments s ON s.id = m.segment_id
+	          LEFT JOIN agents a ON a.id = m.agent_id
 	          LEFT JOIN merchant_api_credentials mac ON mac.merchant_id = m.id
 	          WHERE m.user_id = $1`
 	var m models.Merchant
-	err := exec.QueryRow(query, userID).Scan(&m.ID, &m.UserID, &m.SegmentID, &m.MerchantName, &m.MerchantType, &m.Status, &m.CreatedAt, &m.CreatedBy, &m.UpdatedAt, &m.UpdatedBy, &m.UserName, &m.UserEmail, &m.SegmentName, &m.ClientKey, &m.WhitelistIPs, &m.ApiIsActive)
+	err := exec.QueryRow(query, userID).Scan(&m.ID, &m.UserID, &m.AgentID, &m.SegmentID, &m.MerchantName, &m.MerchantType, &m.Status, &m.CreatedAt, &m.CreatedBy, &m.UpdatedAt, &m.UpdatedBy, &m.UserName, &m.UserEmail, &m.SegmentName, &m.AgentName, &m.ClientKey, &m.WhitelistIPs, &m.ApiIsActive)
 	if err != nil {
 		return nil, err
 	}
@@ -72,14 +78,17 @@ func GetMerchantByUserID(exec QueryExecutor, userID int64) (*models.Merchant, er
 }
 
 func GetMerchantByClientKey(exec QueryExecutor, clientKey string) (*models.Merchant, error) {
-	query := `SELECT m.id, m.user_id, m.segment_id, m.merchant_name, m.merchant_type, m.status, m.created_at, m.created_by, m.updated_at, m.updated_by, COALESCE(u.name, ''), COALESCE(u.email, ''), COALESCE(s.segment_name, ''), COALESCE(mac.client_key, ''), COALESCE(mac.whitelist_ips, ''), COALESCE(mac.is_active, false)
+	query := `SELECT m.id, m.user_id, m.agent_id, m.segment_id, m.merchant_name, m.merchant_type, m.status, m.created_at, m.created_by, m.updated_at, m.updated_by,
+	                 COALESCE(u.name, ''), COALESCE(u.email, ''), COALESCE(s.segment_name, ''),
+	                 COALESCE(a.agent_name, ''), COALESCE(mac.client_key, ''), COALESCE(mac.whitelist_ips, ''), COALESCE(mac.is_active, false)
 	          FROM merchants m
 	          LEFT JOIN users u ON u.id = m.user_id
 	          LEFT JOIN segments s ON s.id = m.segment_id
+	          LEFT JOIN agents a ON a.id = m.agent_id
 	          JOIN merchant_api_credentials mac ON mac.merchant_id = m.id
 	          WHERE mac.client_key = $1`
 	var m models.Merchant
-	err := exec.QueryRow(query, clientKey).Scan(&m.ID, &m.UserID, &m.SegmentID, &m.MerchantName, &m.MerchantType, &m.Status, &m.CreatedAt, &m.CreatedBy, &m.UpdatedAt, &m.UpdatedBy, &m.UserName, &m.UserEmail, &m.SegmentName, &m.ClientKey, &m.WhitelistIPs, &m.ApiIsActive)
+	err := exec.QueryRow(query, clientKey).Scan(&m.ID, &m.UserID, &m.AgentID, &m.SegmentID, &m.MerchantName, &m.MerchantType, &m.Status, &m.CreatedAt, &m.CreatedBy, &m.UpdatedAt, &m.UpdatedBy, &m.UserName, &m.UserEmail, &m.SegmentName, &m.AgentName, &m.ClientKey, &m.WhitelistIPs, &m.ApiIsActive)
 	if err != nil {
 		return nil, err
 	}
@@ -95,9 +104,9 @@ func GetMerchantByClientKey(exec QueryExecutor, clientKey string) (*models.Merch
 }
 
 func UpdateMerchant(exec QueryExecutor, m *models.Merchant) error {
-	query := `UPDATE merchants SET segment_id = ?, merchant_name = ?, merchant_type = ?, status = ?, updated_at = ?, updated_by = ? WHERE id = ?`
+	query := `UPDATE merchants SET agent_id = ?, segment_id = ?, merchant_name = ?, merchant_type = ?, status = ?, updated_at = ?, updated_by = ? WHERE id = ?`
 	query = helpers.QuerySupport(query)
-	_, err := exec.Exec(query, m.SegmentID, m.MerchantName, m.MerchantType, m.Status, m.UpdatedAt, m.UpdatedBy, m.ID)
+	_, err := exec.Exec(query, m.AgentID, m.SegmentID, m.MerchantName, m.MerchantType, m.Status, m.UpdatedAt, m.UpdatedBy, m.ID)
 	return err
 }
 
@@ -113,37 +122,42 @@ func GetMerchantsList(exec QueryExecutor, search string, start, length int, orde
 		whr   string
 	)
 	if filters.ID != 0 {
-		whr += " AND id = " + strconv.FormatInt(filters.ID, 10)
+		whr += " AND m.id = " + strconv.FormatInt(filters.ID, 10)
 	}
 	if filters.UserID != 0 {
-		whr += " AND user_id = " + strconv.FormatInt(filters.UserID, 10)
+		whr += " AND m.user_id = " + strconv.FormatInt(filters.UserID, 10)
+	}
+	if filters.AgentID != 0 {
+		whr += " AND m.agent_id = " + strconv.FormatInt(filters.AgentID, 10)
 	}
 	if filters.SegmentID != nil && *filters.SegmentID != 0 {
-		whr += " AND segment_id = " + strconv.FormatInt(*filters.SegmentID, 10)
+		whr += " AND m.segment_id = " + strconv.FormatInt(*filters.SegmentID, 10)
 	}
 	if filters.MerchantType != "" {
-		whr += " AND merchant_type = '" + filters.MerchantType + "'"
+		whr += " AND m.merchant_type = '" + filters.MerchantType + "'"
 	}
 	if filters.Status != "" {
-		whr += " AND status = '" + filters.Status + "'"
+		whr += " AND m.status = '" + filters.Status + "'"
 	}
-	fmt.Println(":::", whr)
-	countQuery := `SELECT COUNT(*) FROM merchants WHERE true` + whr
+
+	countQuery := `SELECT COUNT(*) FROM merchants m LEFT JOIN users u ON u.id = m.user_id LEFT JOIN segments s ON s.id = m.segment_id LEFT JOIN agents a ON a.id = m.agent_id LEFT JOIN merchant_api_credentials mac ON mac.merchant_id = m.id WHERE true` + whr
 	countQuery = helpers.QuerySupport(countQuery)
 	err := exec.QueryRow(countQuery).Scan(&count)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	query := `SELECT m.id, m.user_id, m.segment_id, m.merchant_name, m.merchant_type, m.status, m.created_at, m.created_by, m.updated_at, m.updated_by, COALESCE(u.name, ''), COALESCE(u.email, ''), COALESCE(s.segment_name, ''), COALESCE(mac.client_key, ''), COALESCE(mac.whitelist_ips, ''), COALESCE(mac.is_active, false)
+	query := `SELECT m.id, m.user_id, m.agent_id, m.segment_id, m.merchant_name, m.merchant_type, m.status, m.created_at, m.created_by, m.updated_at, m.updated_by,
+	                 COALESCE(u.name, ''), COALESCE(u.email, ''), COALESCE(s.segment_name, ''),
+	                 COALESCE(a.agent_name, ''), COALESCE(mac.client_key, ''), COALESCE(mac.whitelist_ips, ''), COALESCE(mac.is_active, false)
 	          FROM merchants m
 	          LEFT JOIN users u ON u.id = m.user_id
 	          LEFT JOIN segments s ON s.id = m.segment_id
+	          LEFT JOIN agents a ON a.id = m.agent_id
 	          LEFT JOIN merchant_api_credentials mac ON mac.merchant_id = m.id
 	          WHERE true ` + whr
 	if order != "" {
 		order = strings.ReplaceAll(order, ";", "")
-		// Map order field prefix to avoid ambiguity
 		if order == "id" {
 			order = "m.id"
 		} else if order == "created_at" {
@@ -172,7 +186,7 @@ func GetMerchantsList(exec QueryExecutor, search string, start, length int, orde
 	var list []models.Merchant
 	for rows.Next() {
 		var m models.Merchant
-		err = rows.Scan(&m.ID, &m.UserID, &m.SegmentID, &m.MerchantName, &m.MerchantType, &m.Status, &m.CreatedAt, &m.CreatedBy, &m.UpdatedAt, &m.UpdatedBy, &m.UserName, &m.UserEmail, &m.SegmentName, &m.ClientKey, &m.WhitelistIPs, &m.ApiIsActive)
+		err = rows.Scan(&m.ID, &m.UserID, &m.AgentID, &m.SegmentID, &m.MerchantName, &m.MerchantType, &m.Status, &m.CreatedAt, &m.CreatedBy, &m.UpdatedAt, &m.UpdatedBy, &m.UserName, &m.UserEmail, &m.SegmentName, &m.AgentName, &m.ClientKey, &m.WhitelistIPs, &m.ApiIsActive)
 		if err != nil {
 			return nil, 0, err
 		}

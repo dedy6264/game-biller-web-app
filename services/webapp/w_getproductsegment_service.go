@@ -9,21 +9,19 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-// resolveSegmentName resolves the merchant segment name from JWT claims.
-// Returns the segment name and true if authenticated, or empty string and false if not.
-func resolveSegmentName(c echo.Context, db interface { /* QueryExecutor */
-}) (int64, bool) {
+// resolveSegmentName resolves the merchant segment ID from JWT claims.
+// Returns the segment ID and true if authenticated, or 0 and false if not.
+func resolveSegmentName(c echo.Context, db interface{}) (int64, bool) {
 	claims, ok := helpers.GetClaims(c)
-	if !ok || claims.MerchantID == 0 {
+	if !ok || claims == nil || claims.MerchantID == 0 {
 		return 0, false
 	}
 	merchant, err := repositories.GetMerchantByID(connections.DBconn(), claims.MerchantID)
-	if err != nil || merchant.Status != "active" {
+	if err != nil || merchant == nil || merchant.Status != "active" {
 		return 0, false
 	}
 
 	return merchant.SegmentID, true
-
 }
 
 func GetProductSegment(c echo.Context) error {
@@ -40,11 +38,6 @@ func GetProductSegment(c echo.Context) error {
 		}
 	}
 
-	// if refCode == "" {
-	// 	helpers.ProcessLogger(c, svc, "Reference code is required", "Validation error")
-	// 	return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
-	// }
-
 	db := connections.DBconn()
 
 	// Coba resolve segment dari JWT (opsional)
@@ -54,12 +47,11 @@ func GetProductSegment(c echo.Context) error {
 		list interface{}
 		err  error
 	)
-
 	if authenticated {
 		// User sudah login → tampilkan produk sesuai segment merchantnya saja
 		list, err = repositories.GetProductSegmentsByRefCodeAndSegment(db, refCode, segmentID)
 	} else {
-		// Guest / tidak login → tampilkan semua segment (Public_Retail)
+		// Guest / tidak login → tampilkan default segment (Public_Retail)
 		list, err = repositories.GetProductSegmentsByRefCodeAndSegment(db, refCode, 1)
 	}
 

@@ -234,7 +234,7 @@ Table transactions {
   total_amount float64(15,2) [note: "Formula: sell_price + admin_fee + payment_fee"]
   
   // Target & Reff IDs
-  target_user_id varchar [note: "ID Game / No HP Tujuan pembeli"]
+  customer_id varchar [note: "ID Game / No HP Tujuan pembeli"]
   reference_number_internal varchar [unique, note: "Trx ID buatan sistem kita"]
   reference_number_merchant varchar [null, note: "Trx ID kiriman API merchant/web topup"]
   reference_number_provider varchar [note: "Trx ID dari pihak supplier"]

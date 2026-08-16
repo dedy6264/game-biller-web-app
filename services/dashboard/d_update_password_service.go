@@ -34,7 +34,7 @@ func AdminUpdatePassword(c echo.Context) error {
 	db := connections.DBconn()
 
 	// 2. Determine target user ID
-	targetUserID := claims.UserID
+	CustomerID := claims.UserID
 	isSelfUpdate := true
 
 	if req.UserID > 0 && req.UserID != claims.UserID {
@@ -43,12 +43,12 @@ func AdminUpdatePassword(c echo.Context) error {
 			helpers.ProcessLogger(c, svc, "Permission denied to update another user password", "Forbidden")
 			return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrAuth403, nil))
 		}
-		targetUserID = req.UserID
+		CustomerID = req.UserID
 		isSelfUpdate = false
 	}
 
 	// 3. Fetch target user
-	targetUser, err := repositories.GetUserByID(db, targetUserID)
+	targetUser, err := repositories.GetUserByID(db, CustomerID)
 	if err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Target user not found")
 		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrUser404, nil))

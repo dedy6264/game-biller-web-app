@@ -56,12 +56,20 @@ func Inquiry(c echo.Context) error {
 		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
 	}
 
-	// 2. Validasi customer_id (target_user_id)
-	// if strings.TrimSpace(req.TargetUserID) == "" {
-	// 	helpers.ProcessLogger(c, svc, "target_user_id is empty", "Validation error")
+	// 2. Validasi customer_id (customer_id)
+	// if strings.TrimSpace(req.CustomerID) == "" {
+	// 	helpers.ProcessLogger(c, svc, "customer_id is empty", "Validation error")
 	// 	return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
 	// }
-
+	if req.CustomerID == "" {
+		helpers.ProcessLogger(c, svc, "Customer id invalid ", "Validation error")
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
+	}
+	if req.PaymentChannelID == 0 {
+		// Validate payment channel
+		helpers.ProcessLogger(c, svc, "Payment channel invalid or inactive", "Validation error")
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
+	}
 	// 3. Get segment ID melalui repo GetMerchantByID
 	merchant, err := repositories.GetMerchantByID(db, claims.MerchantID)
 	if err != nil || merchant.Status != "active" {
@@ -75,28 +83,30 @@ func Inquiry(c echo.Context) error {
 	}
 
 	// 4. Get product segment JOIN product provider by segment_id dan product_code
-	productSegment, err := repositories.GetProductSegmentJoinProvider(db, segmentID, req.ProductCode)
+	productSegment, err := repositories.GetProductSegmentJoinProvider(db, segmentID, req.ProductCode, "")
 	if err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Product segment not found for this merchant/product")
 		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidProductSegmnt, nil))
 	}
 	// Validasi ketersediaan produk & provider
-	if !productSegment.ProductIsActive {
-		helpers.ProcessLogger(c, svc, "Product is inactive", "Validation error")
-		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidProductNotFound, nil))
-	}
+	// if !productSegment.ProductIsActive {
+	// 	helpers.ProcessLogger(c, svc, "Product is inactive", "Validation error")
+	// 	return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidProductNotFound, nil))
+	// }
 
 	if !productSegment.ProviderIsAvailable {
 		helpers.ProcessLogger(c, svc, "Product provider is not available", "Validation error")
 		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrPvd2301, nil))
 	}
-	// 5. Fetch Payment Channel
-	channel, err := repositories.GetPaymentChannelByCode(db, req.PaymentChannelCode)
-	if err != nil || !channel.IsActive {
-		helpers.ProcessLogger(c, svc, "Payment channel invalid or inactive", "Validation error")
-		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
+	// 5. get payment segment by payment_channel_id (req.PaymentChannelID) or default QRIS_GATEWAY
+	var channel *models.PaymentChannel
+	if req.PaymentChannelID != 0 {
+		channel, err = repositories.GetPaymentChannelByID(db, req.PaymentChannelID)
+	} else {
+		channel, err = repositories.GetPaymentChannelByCode(db, "QRIS_GATEWAY")
 	}
-
+	aa, _ := json.Marshal(channel)
+	fmt.Println("PAYMENT METHOD:: ", string(aa))
 	paymentFee = channel.FeeValue
 
 	// Resolve harga buy price dari provider
@@ -130,6 +140,10 @@ func Inquiry(c echo.Context) error {
 		ProductTypeName:    productSegment.ProductTypeName,
 		ProductReferenceID: productSegment.ProductReferenceID,
 
+		ProductMasterPrice:       productSegment.ProductMasterPrice,
+		ProductMasterAdminFee:    productSegment.ProductMasterAdminFee,
+		ProductMasterMerchantFee: productSegment.ProductMasterMerchantFee,
+
 		ProductProviderID:          productSegment.ProductProviderID,
 		ProductProviderName:        productSegment.ProductProviderName,
 		ProductProviderCode:        productSegment.ProductProviderCode,
@@ -152,7 +166,7 @@ func Inquiry(c echo.Context) error {
 
 		TotalAmount: totalAmount,
 
-		CustomerID:      req.TargetUserID,
+		CustomerID:      req.CustomerID,
 		OtherCustomerID: string(bytes),
 		CustomerPhone:   req.CustomerPhone,
 
@@ -163,7 +177,11 @@ func Inquiry(c echo.Context) error {
 		CreatedBy:     "sys",
 		UpdatedAt:     now,
 		UpdatedBy:     "sys",
+		AgentID:       merchant.AgentID,
 	}
+	// aa, _ = json.Marshal(productSegment)
+	// fmt.Println(productSegment.ProductPrice)
+	// fmt.Println("======", string(aa))
 	err = helpers.DBTransaction(db, func(tx *sql.Tx) error {
 		_, err := repositories.CreateTransaction(tx, &trx)
 		return err
@@ -179,7 +197,7 @@ func Inquiry(c echo.Context) error {
 		refProductID = productSegment.ProductReferenceID
 		iakReq := models.RequestInquiry{
 			RefID:      refInternal,
-			CustomerID: req.TargetUserID,
+			CustomerID: req.CustomerID,
 			DataProduct: models.DataProduct{
 				ProviderID:         ProviderIAK,
 				ProductCategoryID:  productSegment.ProductCategoryID,
@@ -259,7 +277,7 @@ func Inquiry(c echo.Context) error {
 		"admin_fee":                 trx.ProductAdminFee,
 		"payment_fee":               trx.PaymentAdminFee,
 		"total_amount":              trx.TotalAmount,
-		"target_user_id":            trx.CustomerID,
+		"customer_id":               trx.CustomerID,
 		"status":                    trx.StatusMessage,
 	}))
 }
@@ -279,7 +297,7 @@ func InquiryUnSubscribe(c echo.Context) error {
 		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
 	}
 
-	// 2. Validasi customer_id (target_user_id)
+	// 2. Validasi customer_id (customer_id)
 	if req.CustomerPhone == "" {
 		helpers.ProcessLogger(c, svc, "Customer Phone is empty", "Validation error")
 		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
@@ -298,7 +316,7 @@ func InquiryUnSubscribe(c echo.Context) error {
 	}
 
 	// 4. Get product segment JOIN product provider by segment_id dan product_code
-	productSegment, err := repositories.GetProductSegmentJoinProvider(db, segmentID, req.ProductCode)
+	productSegment, err := repositories.GetProductSegmentJoinProvider(db, segmentID, req.ProductCode, "")
 	if err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Product segment not found for this merchant/product")
 		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidProductSegmnt, nil))
@@ -314,7 +332,7 @@ func InquiryUnSubscribe(c echo.Context) error {
 		helpers.ProcessLogger(c, svc, "Product provider is not available", "Validation error")
 		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrPvd2301, nil))
 	}
-	// 5. Fetch Payment Channel
+	// 5. get payment segment
 	channel, err := repositories.GetPaymentChannelByCode(db, "QRIS_GATEWAY") //default QRIS_GATEWAY
 	if err != nil || !channel.IsActive {
 		helpers.ProcessLogger(c, svc, "Payment channel invalid or inactive", "Validation error")
@@ -376,7 +394,7 @@ func InquiryUnSubscribe(c echo.Context) error {
 
 		TotalAmount: totalAmount,
 
-		CustomerID:      req.TargetUserID,
+		CustomerID:      req.CustomerID,
 		OtherCustomerID: string(bytes),
 
 		StatusCode:    "", //belum memiliki status atau inquiry proccess
@@ -403,7 +421,7 @@ func InquiryUnSubscribe(c echo.Context) error {
 		refProductID = productSegment.ProductReferenceID
 		iakReq := models.RequestInquiry{
 			RefID:      refInternal,
-			CustomerID: req.TargetUserID,
+			CustomerID: req.CustomerID,
 			DataProduct: models.DataProduct{
 				ProviderID:         ProviderIAK,
 				ProductCategoryID:  productSegment.ProductCategoryID,
@@ -480,7 +498,7 @@ func InquiryUnSubscribe(c echo.Context) error {
 		"admin_fee":                 trx.ProductAdminFee,
 		"payment_fee":               trx.PaymentAdminFee,
 		"total_amount":              trx.TotalAmount,
-		"target_user_id":            trx.CustomerID,
+		"customer_id":               trx.CustomerID,
 		"status":                    trx.StatusMessage,
 	}))
 }

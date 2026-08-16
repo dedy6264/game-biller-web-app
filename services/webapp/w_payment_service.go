@@ -184,6 +184,12 @@ func Payment(c echo.Context) error {
 			} else {
 				trx.StatusCode = helpers.CodeIntrPending
 				trx.StatusMessage = iakResult.ProviderDetail.Message
+				if iakResult.DataTransaction.SerialNumber != "" {
+					trx.SerialNumber = iakResult.DataTransaction.SerialNumber
+				}
+				if iakResult.ProviderRefID != "" {
+					trx.ReferenceNumberProvider = iakResult.ProviderRefID
+				}
 			}
 		}
 	} else {
@@ -209,7 +215,7 @@ func Payment(c echo.Context) error {
 		"product_code":              trx.ProductCode,
 		"product_name":              trx.ProductName,
 		"total_amount":              trx.TotalAmount,
-		"target_user_id":            trx.CustomerID,
+		"customer_id":               trx.CustomerID,
 		"serial_number":             trx.SerialNumber,
 		"status":                    trx.StatusMessage,
 	}))
@@ -341,7 +347,7 @@ func PaymentUnSubscribe(c echo.Context) error {
 		"product_code":              trx.ProductCode,
 		"product_name":              trx.ProductName,
 		"total_amount":              trx.TotalAmount,
-		"target_user_id":            trx.CustomerID,
+		"customer_id":               trx.CustomerID,
 		"serial_number":             trx.SerialNumber,
 		"status":                    trx.StatusMessage,
 	}))

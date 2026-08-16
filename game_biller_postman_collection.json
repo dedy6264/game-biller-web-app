@@ -64,7 +64,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"name\": \"Dedy Kusworo\",\n    \"email\": \"dedy@gamebiller.com\",\n    \"phone_number\": \"081234567890\",\n    \"password\": \"password123\"\n}"
+							"raw": "{\n    \"name\": \"Dedy Kusworo\",\n    \"email\": \"dedy@gamebiller.com\",\n    \"phone_number\": \"081234567890\",\n    \"password\": \"password123\",\n    \"referral_code\": \"AG-UTAMA\"\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/api/webapp/register",
@@ -292,7 +292,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"product_code\": \"ML_86\",\n    \"target_user_id\": \"12345678\",\n    \"zone_id\": \"1234\",\n    \"server_id\": \"5678\",\n    \"customer_phone\": \"081234567890\",\n    \"other_customer_id\": \"{\\\"zone_id\\\":\\\"1234\\\",\\\"server_id\\\":\\\"5678\\\"}\",\n    \"payment_channel_code\": \"BALANCE_INTERNAL\",\n    \"reference_number_merchant\": \"REF-MERCH-001\"\n}"
+							"raw": "{\n    \"product_code\": \"ML_86\",\n    \"customer_id\": \"12345678\",\n    \"zone_id\": \"1234\",\n    \"server_id\": \"5678\",\n    \"customer_phone\": \"081234567890\",\n    \"other_customer_id\": \"{\\\"zone_id\\\":\\\"1234\\\",\\\"server_id\\\":\\\"5678\\\"}\",\n    \"payment_channel_code\": \"BALANCE_INTERNAL\",\n    \"reference_number_merchant\": \"REF-MERCH-001\"\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/api/webapp/inquiry",
@@ -817,7 +817,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n    \"user_id\": 1,\n    \"segment_id\": 1,\n    \"merchant_name\": \"H2H Partner Store\",\n    \"merchant_type\": \"h2h_api\",\n    \"status\": \"active\",\n    \"api_credential\": {\n        \"client_key\": \"client_abc123\",\n        \"secret_key\": \"secret_xyz789\",\n        \"whitelist_ips\": \"127.0.0.1,192.168.1.1\",\n        \"is_active\": true\n    }\n}"
+									"raw": "{\n    \"user_id\": 1,\n    \"agent_id\": 1,\n    \"segment_id\": 1,\n    \"merchant_name\": \"H2H Partner Store\",\n    \"merchant_type\": \"h2h_api\",\n    \"status\": \"active\",\n    \"api_credential\": {\n        \"client_key\": \"client_abc123\",\n        \"secret_key\": \"secret_xyz789\",\n        \"whitelist_ips\": \"127.0.0.1,192.168.1.1\",\n        \"is_active\": true\n    }\n}"
 								},
 								"url": {
 									"raw": "{{base_url}}/api/dashboard/merchants/create",
@@ -856,7 +856,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n    \"id\": 1,\n    \"segment_id\": 1,\n    \"merchant_name\": \"My Store Updated\",\n    \"merchant_type\": \"member_premium\",\n    \"status\": \"active\",\n    \"client_key\": \"client_abc123_updated\",\n    \"secret_key\": \"secret_xyz789_updated\",\n    \"whitelist_ips\": \"127.0.0.1,192.168.1.100\",\n    \"api_is_active\": true\n}"
+									"raw": "{\n    \"id\": 1,\n    \"agent_id\": 1,\n    \"segment_id\": 1,\n    \"merchant_name\": \"My Store Updated\",\n    \"merchant_type\": \"member_premium\",\n    \"status\": \"active\",\n    \"client_key\": \"client_abc123_updated\",\n    \"secret_key\": \"secret_xyz789_updated\",\n    \"whitelist_ips\": \"127.0.0.1,192.168.1.100\",\n    \"api_is_active\": true\n}"
 								},
 								"url": {
 									"raw": "{{base_url}}/api/dashboard/merchants/update",
@@ -1139,7 +1139,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n    \"merchant_id\": 1,\n    \"product_id\": 1,\n    \"payment_channel_id\": 1,\n    \"target_user_id\": \"12345678\",\n    \"amount\": 15000,\n    \"admin_fee\": 1000,\n    \"merchant_fee\": 500,\n    \"status_code\": \"PENDING\"\n}"
+									"raw": "{\n    \"merchant_id\": 1,\n    \"product_id\": 1,\n    \"payment_channel_id\": 1,\n    \"customer_id\": \"12345678\",\n    \"amount\": 15000,\n    \"admin_fee\": 1000,\n    \"merchant_fee\": 500,\n    \"status_code\": \"PENDING\"\n}"
 								},
 								"url": {
 									"raw": "{{base_url}}/api/dashboard/transactions/create",
@@ -2364,6 +2364,328 @@
 					]
 				},
 				{
+					"name": "Product Masters",
+					"item": [
+						{
+							"name": "List Product Masters",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{admin_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"draw\": 1,\n    \"start\": 0,\n    \"length\": 10,\n    \"filters\": {\n        \"id\": 0,\n        \"provider_id\": 0,\n        \"product_id\": 0,\n        \"product_provider_id\": 0,\n        \"product_segment_index\": \"\",\n        \"product_name\": \"\"\n    }\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/dashboard/product-masters/list",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"dashboard",
+										"product-masters",
+										"list"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create Product Master",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{admin_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"provider_id\": 1,\n    \"product_provider_id\": 1,\n    \"product_name\": \"Mobile Legends 86 Diamonds\",\n    \"product_segment_index\": \"1_1\",\n    \"provider_name\": \"IAK\",\n    \"product_provider_code\": \"IAK_ML_86\",\n    \"product_provider_name\": \"IAK ML 86 Diamonds\",\n    \"product_id\": 1,\n    \"product_price\": 13000,\n    \"admin_fee\": 500,\n    \"merchant_fee\": 200,\n    \"product_provider_price\": 12000,\n    \"product_provider_admin_fee\": 500,\n    \"product_provider_merchant_fee\": 300\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/dashboard/product-masters/create",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"dashboard",
+										"product-masters",
+										"create"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Update Product Master",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{admin_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"id\": 1,\n    \"provider_id\": 1,\n    \"product_provider_id\": 1,\n    \"product_name\": \"Mobile Legends 86 Diamonds (Updated)\",\n    \"product_segment_index\": \"1_1\",\n    \"product_price\": 13200\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/dashboard/product-masters/update",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"dashboard",
+										"product-masters",
+										"update"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Delete Product Master",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{admin_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"id\": 1\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/dashboard/product-masters/delete",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"dashboard",
+										"product-masters",
+										"delete"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Agents",
+					"item": [
+						{
+							"name": "List Agents",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{admin_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"draw\": 1,\n    \"start\": 0,\n    \"length\": 10,\n    \"filters\": {\n        \"id\": 0,\n        \"user_id\": 0,\n        \"agent_name\": \"\",\n        \"status\": \"active\"\n    }\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/dashboard/agents/list",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"dashboard",
+										"agents",
+										"list"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create Agent",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{admin_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"agent_name\": \"Agent Utama Jakarta\",\n    \"user_id\": 2,\n    \"referral_code\": \"AG-JKT01\",\n    \"status\": \"active\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/dashboard/agents/create",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"dashboard",
+										"agents",
+										"create"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Update Agent",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{admin_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"id\": 1,\n    \"agent_name\": \"Agent Utama Jakarta (Updated)\",\n    \"referral_code\": \"AG-JKT01-UPDATED\",\n    \"status\": \"active\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/dashboard/agents/update",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"dashboard",
+										"agents",
+										"update"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Delete Agent",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{admin_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"id\": 1\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/dashboard/agents/delete",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"dashboard",
+										"agents",
+										"delete"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
 					"name": "Product Segments",
 					"item": [
 						{
@@ -2388,7 +2710,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n    \"draw\": 1,\n    \"start\": 0,\n    \"length\": 10,\n    \"filters\": {\n        \"id\": 0,\n        \"segment_id\": 0,\n        \"product_provider_id\": 0,\n        \"product_id\": 0,\n        \"segment_name\": \"\"\n    }\n}"
+									"raw": "{\n    \"draw\": 1,\n    \"start\": 0,\n    \"length\": 10,\n    \"filters\": {\n        \"id\": 0,\n        \"segment_id\": 0,\n        \"agent_id\": 0,\n        \"product_master_id\": 0,\n        \"product_master_code\": \"\",\n        \"segment_name\": \"\"\n    }\n}"
 								},
 								"url": {
 									"raw": "{{base_url}}/api/dashboard/product-segments/list",
@@ -2427,7 +2749,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n    \"segment_id\": 1,\n    \"product_provider_id\": 1,\n    \"segment_name\": \"Premium Gamers\",\n    \"product_provider_code\": \"IAK_ML_86\",\n    \"provider_product_name\": \"IAK Mobile Legends 86 Diamonds\",\n    \"product_id\": 1,\n    \"product_price\": 13500,\n    \"admin_fee\": 1000,\n    \"merchant_fee\": 500,\n    \"provider_product_price\": 12000,\n    \"provider_product_admin_fee\": 500,\n    \"provider_product_merchant_fee\": 300\n}"
+									"raw": "{\n    \"segment_id\": 1,\n    \"product_master_id\": 1,\n    \"product_master_code\": \"ML_86_IAK\",\n    \"product_price\": 13500,\n    \"product_admin_fee\": 1000,\n    \"product_merchant_fee\": 500\n}"
 								},
 								"url": {
 									"raw": "{{base_url}}/api/dashboard/product-segments/create",
@@ -2466,7 +2788,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n    \"id\": 1,\n    \"segment_id\": 1,\n    \"product_provider_id\": 1,\n    \"segment_name\": \"Premium Gamers Updated\",\n    \"product_provider_code\": \"IAK_ML_86\",\n    \"provider_product_name\": \"IAK Mobile Legends 86 Diamonds\",\n    \"product_id\": 1,\n    \"product_price\": 13800,\n    \"admin_fee\": 1000,\n    \"merchant_fee\": 500,\n    \"provider_product_price\": 12200,\n    \"provider_product_admin_fee\": 500,\n    \"provider_product_merchant_fee\": 300\n}"
+									"raw": "{\n    \"id\": 1,\n    \"segment_id\": 1,\n    \"product_master_id\": 1,\n    \"product_master_code\": \"ML_86_IAK\",\n    \"product_price\": 13800,\n    \"product_admin_fee\": 1000,\n    \"product_merchant_fee\": 500\n}"
 								},
 								"url": {
 									"raw": "{{base_url}}/api/dashboard/product-segments/update",
@@ -2588,7 +2910,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n    \"segment_name\": \"Premium Gamers\"\n}"
+									"raw": "{\n    \"segment_name\": \"Premium Gamers\",\n    \"agent_id\": 1\n}"
 								},
 								"url": {
 									"raw": "{{base_url}}/api/dashboard/segments/create",
@@ -2627,7 +2949,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n    \"id\": 1,\n    \"segment_name\": \"Premium Gamers Updated\"\n}"
+									"raw": "{\n    \"id\": 1,\n    \"segment_name\": \"Premium Gamers Updated\",\n    \"agent_id\": 1\n}"
 								},
 								"url": {
 									"raw": "{{base_url}}/api/dashboard/segments/update",

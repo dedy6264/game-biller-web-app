@@ -1,8 +1,6 @@
 package dashboard
 
 import (
-	"encoding/json"
-	"fmt"
 	"gamebiller/connections"
 	"gamebiller/helpers"
 	"gamebiller/models"
@@ -34,73 +32,80 @@ func AdminGetProductSegments(c echo.Context) error {
 
 func AdminCreateProductSegment(c echo.Context) error {
 	var (
-		svc   = "AdminCreateProductSegment"
-		ps    models.ProductSegment
-		pprov models.ProductProvider
+		svc = "AdminCreateProductSegment"
+		ps  models.ProductSegment
 	)
 	if err := c.Bind(&ps); err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to bind request")
 		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
 	}
-	now := time.Now().Format("2006-01-02T15:04:05Z07:00")
-	ps.CreatedAt = now
-	ps.UpdatedAt = now
-	ps.CreatedBy = "admin"
-	ps.UpdatedBy = "admin"
+
+	if ps.ProductMasterID == 0 {
+		helpers.ProcessLogger(c, svc, "ProductMasterID cannot be zero", "Validation error")
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
+	}
+	if ps.SegmentID == 0 {
+		helpers.ProcessLogger(c, svc, "SegmentID cannot be zero", "Validation error")
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
+	}
 
 	db := connections.DBconn()
-	if ps.ProductName == "" && ps.ProductID != 0 {
-		if prod, err := repositories.GetProductByID(db, ps.ProductID); err == nil {
-			ps.ProductName = prod.ProductName
-		}
-	}
-	if ps.ProductProviderID == 0 {
-		//return invalid product provider
-		helpers.ProcessLogger(c, svc, "ProductProviderID cannot be zero", "Validation error")
-		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
-	}
-	if ps.ProductID == 0 {
-		//return invalid product
-		helpers.ProcessLogger(c, svc, "ProductID cannot be zero", "Validation error")
-		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
-	}
-	p, err := repositories.GetProductByID(db, ps.ProductID)
+
+	// Fetch product master for snapshot data
+	pm, err := repositories.GetProductMasterByID(db, ps.ProductMasterID)
 	if err != nil {
-		helpers.ProcessLogger(c, svc, err.Error(), "Product not found")
+		helpers.ProcessLogger(c, svc, err.Error(), "Product master not found")
 		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrUser404, nil))
 	}
-	pprov, err = repositories.GetProductProviderByID(db, ps.ProductProviderID)
+
+	// Fetch segment for name
+	seg, err := repositories.GetSegmentByID(db, ps.SegmentID)
 	if err != nil {
-		helpers.ProcessLogger(c, svc, err.Error(), "Product provider not found")
+		helpers.ProcessLogger(c, svc, err.Error(), "Segment not found")
 		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrUser404, nil))
 	}
-	ps = models.ProductSegment{
-		ID:                         ps.ID,
-		SegmentName:                ps.SegmentName,
-		SegmentID:                  ps.SegmentID,
-		ProductProviderID:          pprov.ID,
-		ProductID:                  p.ID,
-		ProductName:                p.ProductName,
-		ProviderName:               pprov.ProviderName,
-		ProductPrice:               ps.ProductPrice,
-		AdminFee:                   ps.AdminFee,
-		MerchantFee:                ps.MerchantFee,
-		ProductProviderCode:        pprov.ProductProviderCode,
-		ProductProviderName:        pprov.ProductProviderName,
-		ProductProviderPrice:       pprov.ProductProviderPrice,
-		ProductProviderAdminFee:    pprov.ProductProviderAdminFee,
-		ProductProviderMerchantFee: pprov.ProductProviderMerchantFee,
-		CreatedAt:                  ps.CreatedAt,
-		CreatedBy:                  ps.CreatedBy,
-		UpdatedAt:                  ps.UpdatedAt,
-		UpdatedBy:                  ps.UpdatedBy,
+
+	masterCode := pm.ProductProviderCode
+	if ps.ProductMasterCode != "" {
+		masterCode = ps.ProductMasterCode
 	}
-	_, err = repositories.CreateProductSegment(db, ps)
+
+	now := time.Now().Format("2006-01-02T15:04:05Z07:00")
+	newPS := models.ProductSegment{
+		SegmentID:                ps.SegmentID,
+		AgentID:                  seg.AgentID,
+		ProductMasterID:          pm.ID,
+		SegmentName:              seg.SegmentName,
+		ProductMasterCode:        masterCode,
+		ProductMasterName:        pm.ProductName,
+		ProductMasterPrice:       pm.ProductPrice,
+		ProductMasterAdminFee:    pm.AdminFee,
+		ProductMasterMerchantFee: pm.MerchantFee,
+		// Allow override; fall back to master values if zero
+		ProductPrice:       ps.ProductPrice,
+		ProductAdminFee:    ps.ProductAdminFee,
+		ProductMerchantFee: ps.ProductMerchantFee,
+		CreatedAt:          now,
+		CreatedBy:          "admin",
+		UpdatedAt:          now,
+		UpdatedBy:          "admin",
+	}
+	if newPS.ProductPrice == 0 {
+		newPS.ProductPrice = pm.ProductPrice
+	}
+	if newPS.ProductAdminFee == 0 {
+		newPS.ProductAdminFee = pm.AdminFee
+	}
+	if newPS.ProductMerchantFee == 0 {
+		newPS.ProductMerchantFee = pm.MerchantFee
+	}
+
+	_, err = repositories.CreateProductSegment(db, newPS)
 	if err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to create product segment")
 		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrSys500, nil))
 	}
-	return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeSuccess, ps))
+	return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeSuccess, newPS))
 }
 
 func AdminUpdateProductSegment(c echo.Context) error {
@@ -123,51 +128,52 @@ func AdminUpdateProductSegment(c echo.Context) error {
 		helpers.ProcessLogger(c, svc, err.Error(), "Product segment not found")
 		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrUser404, nil))
 	}
-	if input.ProductProviderID == 0 {
-		//return invalid product provider
-		helpers.ProcessLogger(c, svc, "ProductProviderID cannot be zero", "Validation error")
-		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
+
+	// Update product master if changed
+	if input.ProductMasterID != 0 && input.ProductMasterID != ps.ProductMasterID {
+		pm, err := repositories.GetProductMasterByID(db, input.ProductMasterID)
+		if err != nil {
+			helpers.ProcessLogger(c, svc, err.Error(), "Product master not found")
+			return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrUser404, nil))
+		}
+		ps.ProductMasterID = pm.ID
+		ps.ProductMasterCode = pm.ProductProviderCode
+		ps.ProductMasterName = pm.ProductName
+		ps.ProductMasterPrice = pm.ProductPrice
+		ps.ProductMasterAdminFee = pm.AdminFee
+		ps.ProductMasterMerchantFee = pm.MerchantFee
 	}
-	if input.ProductID == 0 {
-		//return invalid product
-		helpers.ProcessLogger(c, svc, "ProductID cannot be zero", "Validation error")
-		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
+
+	if input.ProductMasterCode != "" {
+		ps.ProductMasterCode = input.ProductMasterCode
 	}
-	p, err := repositories.GetProductByID(db, input.ProductID)
-	if err != nil {
-		helpers.ProcessLogger(c, svc, err.Error(), "Product not found")
-		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrUser404, nil))
+
+	// Update segment if changed
+	if input.SegmentID != 0 && input.SegmentID != ps.SegmentID {
+		seg, err := repositories.GetSegmentByID(db, input.SegmentID)
+		if err != nil {
+			helpers.ProcessLogger(c, svc, err.Error(), "Segment not found")
+			return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrUser404, nil))
+		}
+		ps.SegmentID = seg.ID
+		ps.SegmentName = seg.SegmentName
+		ps.AgentID = seg.AgentID
 	}
-	pprov, err := repositories.GetProductProviderByID(db, input.ProductProviderID)
-	if err != nil {
-		helpers.ProcessLogger(c, svc, err.Error(), "Product provider not found")
-		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrUser404, nil))
+
+	// Allow price overrides
+	if input.ProductPrice != 0 {
+		ps.ProductPrice = input.ProductPrice
 	}
-	ss, _ := json.Marshal(pprov)
-	fmt.Println("====", string(ss))
-	ps = models.ProductSegment{
-		ID:                         ps.ID,
-		SegmentName:                ps.SegmentName,
-		SegmentID:                  ps.SegmentID,
-		ProductProviderID:          pprov.ID,
-		ProductID:                  p.ID,
-		ProductName:                p.ProductName,
-		ProviderName:               pprov.ProviderName,
-		ProductPrice:               input.ProductPrice,
-		AdminFee:                   input.AdminFee,
-		MerchantFee:                input.MerchantFee,
-		ProductProviderCode:        pprov.ProductProviderCode,
-		ProductProviderName:        pprov.ProductProviderName,
-		ProductProviderPrice:       pprov.ProductProviderPrice,
-		ProductProviderAdminFee:    pprov.ProductProviderAdminFee,
-		ProductProviderMerchantFee: pprov.ProductProviderMerchantFee,
-		CreatedAt:                  ps.CreatedAt,
-		CreatedBy:                  ps.CreatedBy,
-		UpdatedAt:                  time.Now().Format("2006-01-02T15:04:05Z07:00"),
-		UpdatedBy:                  "admin",
+	if input.ProductAdminFee != 0 {
+		ps.ProductAdminFee = input.ProductAdminFee
 	}
-	ss, _ = json.Marshal(ps)
-	fmt.Println("====", string(ss))
+	if input.ProductMerchantFee != 0 {
+		ps.ProductMerchantFee = input.ProductMerchantFee
+	}
+
+	ps.UpdatedAt = time.Now().Format("2006-01-02T15:04:05Z07:00")
+	ps.UpdatedBy = "admin"
+
 	err = repositories.UpdateProductSegment(db, ps)
 	if err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to update product segment")

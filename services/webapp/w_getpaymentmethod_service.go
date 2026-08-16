@@ -10,6 +10,7 @@ import (
 )
 
 // === 6. GET PAYMENT METHOD ===
+
 func GetPaymentMethod(c echo.Context) error {
 	var (
 		svc = "GetPaymentMethod"
@@ -22,8 +23,20 @@ func GetPaymentMethod(c echo.Context) error {
 	db := connections.DBconn()
 	var segmentID int64 = req.SegmentID
 
-	// Default to Open_Biller segment (ID 1) if no segment specified
-	if segmentID == 0 {
+	claims, ok := helpers.GetClaims(c)
+	if !ok {
+		helpers.ProcessLogger(c, svc, "Failed to get claims", "Authorization error")
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrAuth419, nil))
+	}
+	// Resolve segment from JWT claims if user/merchant is logged in
+	merchant, err := repositories.GetMerchantByID(db, claims.MerchantID)
+	if err != nil || merchant.Status != "active" {
+		helpers.ProcessLogger(c, svc, "Failed to get merchant or merchant inactive", "Validation error")
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrInt201, nil))
+	}
+	if merchant.SegmentID != 0 {
+		segmentID = merchant.SegmentID
+	} else {
 		segmentID = 1
 	}
 

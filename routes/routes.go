@@ -63,7 +63,7 @@ func dashboardRoutes(a *echo.Group) {
 			}
 			token := claimsVal.(*jwt.Token)
 			claims := token.Claims.(*models.JwtCustomClaims)
-			if claims.RoleCode != "super_admin" && claims.RoleCode != "finance" && claims.RoleCode != "cs" {
+			if claims.RoleCode != "super_admin" && claims.RoleCode != "admin" && claims.RoleCode != "agent" && claims.RoleCode != "merchant" {
 				return c.JSON(http.StatusOK, helpers.BuildResponse("ERR-AUTH-403", nil))
 			}
 			return next(c)
@@ -95,9 +95,9 @@ func dashboardRoutes(a *echo.Group) {
 
 	// Roles CRUD
 	a.POST("/roles/list", dashboard.AdminGetRoles)
-	a.POST("/roles/create", dashboard.AdminCreateRole)
-	a.POST("/roles/update", dashboard.AdminUpdateRole)
-	a.POST("/roles/delete", dashboard.AdminDeleteRole)
+	// a.POST("/roles/create", dashboard.AdminCreateRole)
+	// a.POST("/roles/update", dashboard.AdminUpdateRole)
+	// a.POST("/roles/delete", dashboard.AdminDeleteRole)
 
 	// ModelHasRoles CRUD
 	a.POST("/model-has-roles/list", dashboard.AdminGetModelHasRoles)
@@ -140,6 +140,18 @@ func dashboardRoutes(a *echo.Group) {
 	a.POST("/product-segments/create", dashboard.AdminCreateProductSegment)
 	a.POST("/product-segments/update", dashboard.AdminUpdateProductSegment)
 	a.POST("/product-segments/delete", dashboard.AdminDeleteProductSegment)
+
+	// Product Masters CRUD
+	a.POST("/product-masters/list", dashboard.AdminGetProductMasters)
+	a.POST("/product-masters/create", dashboard.AdminCreateProductMaster)
+	a.POST("/product-masters/update", dashboard.AdminUpdateProductMaster)
+	a.POST("/product-masters/delete", dashboard.AdminDeleteProductMaster)
+
+	// Agents CRUD
+	a.POST("/agents/list", dashboard.AdminGetAgents)
+	a.POST("/agents/create", dashboard.AdminCreateAgent)
+	a.POST("/agents/update", dashboard.AdminUpdateAgent)
+	a.POST("/agents/delete", dashboard.AdminDeleteAgent)
 
 	// Segments CRUD
 	a.POST("/segments/list", dashboard.AdminGetSegments)

@@ -28,7 +28,13 @@ func Register(c echo.Context) error {
 	}
 
 	db := connections.DBconn()
-
+	// 1.cek email dan phone number sudah ada atau belum,
+	// 2.jika refferal == "", gunakan default agent dan segment yaitu agen_id = 1 dan segment_id = 2
+	//3. jika referal!="", cari agent berdasarkan kode referal dan segment pertama yang dimiliki oleh agent
+	//4. jika tidak ada agent yang ditemukan, gunakan default agent dan segment
+	//5. lanjut pembuatan user dan binding dengan role sebagai merchant
+	//6. jika segment tidak ada, gunakan default segment
+	//7. lanjut pembuatan saving account
 	// Check email exist
 	_, err := repositories.GetUserByEmailOrPhone(db, req.Email)
 	if err == nil {
@@ -50,20 +56,42 @@ func Register(c echo.Context) error {
 		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrSys500, nil))
 	}
 
-	// Lookup segment Public_Retail untuk auto-binding saat register
-	var publicRetailSegmentID int64
-	seg, err := repositories.GetSegmentByID(db, 2)
-	if err == nil {
-		publicRetailSegmentID = seg.ID
+	// Tentukan Agent & Segment berdasarkan referral code atau default
+	var (
+		assignedAgentID   int64 = 1 // Default Agent
+		assignedSegmentID int64 = 2 // Default Public_Retail Segment
+	)
+
+	if req.ReferralCode != "" {
+		// Jika ada referral code: cari agent aktif berdasarkan kode tersebut
+		ag, agErr := repositories.GetAgentByReferralCode(db, req.ReferralCode)
+		if agErr == nil && ag != nil && ag.Status == "active" {
+			assignedAgentID = ag.ID
+			// Ambil segment pertama milik agent tersebut
+			segs, _, segErr := repositories.GetSegmentsList(db, "", 0, 1, "", "", models.SegmentFilters{AgentID: ag.ID})
+			if segErr == nil && len(segs) > 0 {
+				assignedSegmentID = segs[0].ID
+			}
+			// Jika segment tidak ditemukan, tetap gunakan default segment (ID 2)
+		} else {
+			// Referral code tidak valid atau agent tidak aktif — fallback ke default
+			helpers.ProcessLogger(c, svc, "Referral code tidak valid atau agent tidak aktif, menggunakan default", "Referral warning")
+		}
 	} else {
-		helpers.ProcessLogger(c, svc, err.Error(), "Retail Biller segment not found, proceeding without segment binding")
+		// Tidak ada referral: gunakan default agent dan segment
+		// Verifikasi bahwa default segment (ID 2) masih ada
+		if seg, segErr := repositories.GetSegmentByID(db, 2); segErr == nil {
+			assignedSegmentID = seg.ID
+			assignedAgentID = seg.AgentID
+		}
+		// Jika default segment tidak ada, tetap gunakan hardcoded ID 1 & 2 sebagai fallback terakhir
 	}
 
-	now := time.Now().Format(time.RFC3339)
+	now := time.Now().Format("2006-01-02T15:04:05Z07:00")
 
 	var userID int64
 	err = helpers.DBTransaction(db, func(tx *sql.Tx) error {
-		// 1. Create User
+		// 1. Buat User
 		user := models.User{
 			Name:         req.Name,
 			Email:        req.Email,
@@ -82,23 +110,25 @@ func Register(c echo.Context) error {
 		}
 		userID = uid
 
-		// 2. Map Role (member_reseller = ID 4)
+		// 2. Bind role merchant (role_id = 4), actor_id diisi 0 dulu — diupdate setelah merchant dibuat
 		mhr := models.ModelHasRole{
 			UserID:    uid,
 			RoleID:    4,
+			ActorID:   0,
 			CreatedAt: now,
 			CreatedBy: "system",
 		}
-		_, err = repositories.CreateModelHasRole(tx, &mhr)
+		mhrID, err := repositories.CreateModelHasRole(tx, &mhr)
 		if err != nil {
 			helpers.ProcessLogger(c, svc, err.Error(), "Failed to map user role")
 			return err
 		}
 
-		// 3. Create Merchant (guest_retail) — auto-bind segment Public_Retail
+		// 3. Buat Merchant — auto-bind AgentID & SegmentID dari hasil referral / default
 		merch := models.Merchant{
 			UserID:       uid,
-			SegmentID:    publicRetailSegmentID,
+			AgentID:      assignedAgentID,
+			SegmentID:    assignedSegmentID,
 			MerchantName: req.Name + " Store",
 			MerchantType: "Retail Biller",
 			Status:       "active",
@@ -113,7 +143,13 @@ func Register(c echo.Context) error {
 			return err
 		}
 
-		// 4. Create Saving Account with PIN (default PIN "123456") and 1,000,000 balance for testing
+		// 4. Update actor_id di model_has_roles dengan merchant_id yang baru dibuat
+		if err := repositories.UpdateModelHasRoleActorID(tx, mhrID, mid); err != nil {
+			helpers.ProcessLogger(c, svc, err.Error(), "Failed to update actor_id on model_has_roles")
+			return err
+		}
+
+		// 5. Buat Saving Account dengan PIN default "123456" dan saldo awal 1.000.000 (untuk testing)
 		pinHash, _ := helpers.HashPassword("123456")
 		sa := models.SavingAccount{
 			MerchantID:     mid,
@@ -140,6 +176,7 @@ func Register(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeSucAuth201, map[string]any{
-		"user_id": userID,
+		"user_id":  userID,
+		"agent_id": assignedAgentID,
 	}))
 }

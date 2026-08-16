@@ -1,6 +1,7 @@
 package dashboard
 
 import (
+	"fmt"
 	"gamebiller/configs"
 	"gamebiller/connections"
 	"gamebiller/helpers"
@@ -22,7 +23,7 @@ func AdminLogin(c echo.Context) error {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to bind request")
 		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
 	}
-
+	fmt.Println("Login request received:", req)
 	db := connections.DBconn()
 
 	user, err := repositories.GetUserByEmailOrPhone(db, req.Username)
@@ -30,7 +31,8 @@ func AdminLogin(c echo.Context) error {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to find user")
 		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrAuth401, nil))
 	}
-
+	hashedPassword, _ := helpers.HashPassword(req.Password)
+	fmt.Println(user.PasswordHash, "||", hashedPassword)
 	if !helpers.CheckPasswordHash(req.Password, user.PasswordHash) {
 		helpers.ProcessLogger(c, svc, "Password hash mismatch", "Authentication failed")
 		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrAuth401, nil))
@@ -44,11 +46,15 @@ func AdminLogin(c echo.Context) error {
 	}
 
 	// Only allow internal admin roles
-	if role.RoleCode != "super_admin" && role.RoleCode != "finance" && role.RoleCode != "cs" {
+	if role.RoleCode != "super_admin" && role.RoleCode != "merchant" && role.RoleCode != "admin" && role.RoleCode != "agent" {
 		helpers.ProcessLogger(c, svc, "User is not an admin", "Access denied")
 		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrAuth403, nil))
 	}
-
+	respRoleModel, err := repositories.GetModelHasRoleByUserID(db, user.ID)
+	if err != nil {
+		helpers.ProcessLogger(c, svc, err.Error(), "Failed to get Model Has Role")
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrAuth403, nil))
+	}
 	// Generate JWT
 	expirationTime := time.Now().Add(12 * time.Hour)
 	claims := &models.JwtCustomClaims{
@@ -72,10 +78,11 @@ func AdminLogin(c echo.Context) error {
 		"token_type": "Bearer",
 		"expires_in": 43200,
 		"user": map[string]any{
-			"id":    user.ID,
-			"name":  user.Name,
-			"email": user.Email,
-			"role":  role.RoleCode,
+			"id":       user.ID,
+			"name":     user.Name,
+			"email":    user.Email,
+			"role":     role.RoleCode,
+			"actor_id": respRoleModel.ActorID,
 		},
 	}))
 }

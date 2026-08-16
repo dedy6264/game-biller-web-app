@@ -2,6 +2,7 @@ package helpers
 
 import (
 	"database/sql"
+	"gamebiller/configs"
 	"gamebiller/models"
 	"math/rand"
 	"strconv"
@@ -13,21 +14,42 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// Helper to get claims from context
+// Helper to get claims from context or Authorization header
 func GetClaims(c echo.Context) (*models.JwtCustomClaims, bool) {
+	if c == nil {
+		return nil, false
+	}
 	tokenVal := c.Get("user")
-	if tokenVal == nil {
-		return nil, false
+	if tokenVal != nil {
+		if token, ok := tokenVal.(*jwt.Token); ok {
+			if claims, ok := token.Claims.(*models.JwtCustomClaims); ok {
+				return claims, true
+			}
+		}
 	}
-	token, ok := tokenVal.(*jwt.Token)
-	if !ok {
-		return nil, false
+
+	// Fallback for public routes where echojwt middleware is not registered:
+	// Parse token from Authorization header if present
+	if c.Request() != nil {
+		authHeader := c.Request().Header.Get("Authorization")
+		if authHeader != "" {
+			tokenStr := strings.TrimSpace(authHeader)
+			if strings.HasPrefix(strings.ToLower(tokenStr), "bearer ") {
+				tokenStr = strings.TrimSpace(tokenStr[7:])
+			}
+			if tokenStr != "" {
+				claims := new(models.JwtCustomClaims)
+				token, err := jwt.ParseWithClaims(tokenStr, claims, func(t *jwt.Token) (interface{}, error) {
+					return []byte(configs.APP_KEY), nil
+				})
+				if err == nil && token != nil && token.Valid {
+					return claims, true
+				}
+			}
+		}
 	}
-	claims, ok := token.Claims.(*models.JwtCustomClaims)
-	if !ok {
-		return nil, false
-	}
-	return claims, true
+
+	return nil, false
 }
 
 // QuerySupport replaces '?' with postgres '$1', '$2', etc. placeholders

@@ -13,6 +13,7 @@ type RequestMerchants struct {
 type MerchantFilters struct {
 	ID           int64  `json:"id"`
 	UserID       int64  `json:"user_id"`
+	AgentID      int64  `json:"agent_id"`
 	SegmentID    *int64 `json:"segment_id"`
 	MerchantName string `json:"merchant_name"`
 	MerchantType string `json:"merchant_type"`

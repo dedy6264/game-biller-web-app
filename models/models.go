@@ -6,6 +6,7 @@ import "github.com/golang-jwt/jwt/v5"
 type JwtCustomClaims struct {
 	UserID     int64  `json:"user_id"`
 	MerchantID int64  `json:"merchant_id"`
+	AgentID    int64  `json:"agent_id"`
 	RoleCode   string `json:"role_code"`
 	jwt.RegisteredClaims
 }
@@ -26,7 +27,7 @@ type User struct {
 
 type Role struct {
 	ID        int64  `json:"id"`
-	RoleCode  string `json:"role_code"` // super_admin, finance, cs, merchant_h2h, member_reseller, retail_guest
+	RoleCode  string `json:"role_code"` // super_admin, admin, agent, merchant
 	RoleName  string `json:"role_name"`
 	CreatedAt string `json:"created_at"`
 	CreatedBy string `json:"created_by"`
@@ -38,6 +39,7 @@ type ModelHasRole struct {
 	ID        int64  `json:"id"`
 	UserID    int64  `json:"user_id"`
 	RoleID    int64  `json:"role_id"`
+	ActorID   int64  `json:"actor_id"` // agent_id atau merchant_id; 0 jika super_admin/admin
 	CreatedAt string `json:"created_at"`
 	CreatedBy string `json:"created_by"`
 	UserName  string `json:"user_name,omitempty"`
@@ -61,20 +63,40 @@ type OtpCode struct {
 }
 
 // 2. MERCHANT PROFILE & CREDENTIALS
+type Agent struct {
+	ID           int64  `json:"id"`
+	AgentName    string `json:"agent_name"`
+	UserID       int64  `json:"user_id"`
+	ReferralCode string `json:"referral_code"`
+	Status       string `json:"status"` // active, suspended
+	CreatedAt    string `json:"created_at"`
+	CreatedBy    string `json:"created_by"`
+	UpdatedAt    string `json:"updated_at"`
+	UpdatedBy    string `json:"updated_by"`
+	// Join fields
+	UserName  string `json:"user_name,omitempty"`
+	UserEmail string `json:"user_email,omitempty"`
+	UserPhone string `json:"user_phone,omitempty"`
+}
+
 type Merchant struct {
-	ID            int64                  `json:"id"`
-	UserID        int64                  `json:"user_id"`
-	SegmentID     int64                  `json:"segment_id"`
-	MerchantName  string                 `json:"merchant_name"`
-	MerchantType  string                 `json:"merchant_type"` // guest_retail, member_premium, h2h_api
-	Status        string                 `json:"status"`
-	CreatedAt     string                 `json:"created_at"`
-	CreatedBy     string                 `json:"created_by"`
-	UpdatedAt     string                 `json:"updated_at"`
-	UpdatedBy     string                 `json:"updated_by"`
+	ID           int64  `json:"id"`
+	UserID       int64  `json:"user_id"`
+	AgentID      int64  `json:"agent_id"`
+	SegmentID    int64  `json:"segment_id"`
+	ReferralCode int64  `json:"referral_code"`
+	MerchantName string `json:"merchant_name"`
+	MerchantType string `json:"merchant_type"` // guest_retail, member_premium, h2h_api
+	Status       string `json:"status"`
+	CreatedAt    string `json:"created_at"`
+	CreatedBy    string `json:"created_by"`
+	UpdatedAt    string `json:"updated_at"`
+	UpdatedBy    string `json:"updated_by"`
+	// Join fields
 	UserName      string                 `json:"user_name"`
 	UserEmail     string                 `json:"user_email"`
 	SegmentName   string                 `json:"segment_name"`
+	AgentName     string                 `json:"agent_name,omitempty"`
 	ClientKey     string                 `json:"client_key,omitempty"`
 	SecretKey     string                 `json:"secret_key,omitempty"`
 	WhitelistIPs  string                 `json:"whitelist_ips,omitempty"`
@@ -203,19 +225,20 @@ type ProductProvider struct {
 	UpdatedBy                  string  `json:"updated_by"`
 }
 
-type ProductSegment struct {
+// ProductMaster represents the middle layer between product_providers and product_segments
+type ProductMaster struct {
 	ID                         int64   `json:"id"`
-	SegmentID                  int64   `json:"segment_id,omitempty"`
-	ProductProviderID          int64   `json:"product_provider_id,omitempty"`
-	SegmentName                string  `json:"segment_name"` // Public_Retail, Gold_Reseller, H2H_Partner
-	ProductID                  int64   `json:"product_id"`
+	ProviderID                 int64   `json:"provider_id"`
+	ProductProviderID          int64   `json:"product_provider_id"`
 	ProductName                string  `json:"product_name"`
+	ProductSegmentIndex        string  `json:"product_segment_index"`
 	ProviderName               string  `json:"provider_name"`
+	ProductProviderCode        string  `json:"product_provider_code"`
+	ProductProviderName        string  `json:"product_provider_name"`
+	ProductID                  int64   `json:"product_id"`
 	ProductPrice               float64 `json:"product_price"`
 	AdminFee                   float64 `json:"admin_fee"`
 	MerchantFee                float64 `json:"merchant_fee"`
-	ProductProviderCode        string  `json:"product_provider_code,omitempty"`
-	ProductProviderName        string  `json:"product_provider_name,omitempty"`
 	ProductProviderPrice       float64 `json:"product_provider_price"`
 	ProductProviderAdminFee    float64 `json:"product_provider_admin_fee"`
 	ProductProviderMerchantFee float64 `json:"product_provider_merchant_fee"`
@@ -223,7 +246,75 @@ type ProductSegment struct {
 	CreatedBy                  string  `json:"created_by"`
 	UpdatedAt                  string  `json:"updated_at"`
 	UpdatedBy                  string  `json:"updated_by"`
-	ProductCode                string  `json:"product_code,omitempty"`
+	// Join fields
+	ProductCode    string `json:"product_code,omitempty"`
+	ProductNameRef string `json:"product_name_ref,omitempty"`
+}
+
+type ProductSegment struct {
+	ID                       int64   `json:"id"`
+	SegmentID                int64   `json:"segment_id,omitempty"`
+	AgentID                  int64   `json:"agent_id,omitempty"`
+	ProductMasterID          int64   `json:"product_master_id,omitempty"`
+	SegmentName              string  `json:"segment_name"` // nama snapshot dari segment
+	ProductMasterCode        string  `json:"product_master_code"`
+	ProductMasterName        string  `json:"product_master_name"`
+	ProductMasterPrice       float64 `json:"product_master_price"`
+	ProductMasterAdminFee    float64 `json:"product_master_admin_fee"`
+	ProductMasterMerchantFee float64 `json:"product_master_merchant_fee"`
+	ProductSegmentIndex      string  `json:"product_segment_index"`
+	ProductPrice             float64 `json:"product_price"`
+	ProductAdminFee          float64 `json:"product_admin_fee"`
+	ProductMerchantFee       float64 `json:"product_merchant_fee"`
+	CreatedAt                string  `json:"created_at"`
+	CreatedBy                string  `json:"created_by"`
+	UpdatedAt                string  `json:"updated_at"`
+	UpdatedBy                string  `json:"updated_by"`
+	// Join fields from product_masters / products
+	ProductCode         string `json:"product_code,omitempty"`
+	ProductName         string `json:"product_name,omitempty"`
+	ProviderName        string `json:"provider_name,omitempty"`
+	ProductProviderCode string `json:"product_provider_code,omitempty"`
+}
+type ProductSegmentDetailResult struct {
+	// segment
+	SegmentID   int64  `json:"segment_id"`
+	SegmentName string `json:"segment_name"`
+
+	// product segment
+	ProductSegmentID int64   `json:"product_segment_id"`
+	ProductPrice     float64 `json:"product_price"`
+	AdminFee         float64 `json:"admin_fee"`
+	MerchantFee      float64 `json:"merchant_fee"`
+
+	// product
+	ProductID          int64  `json:"product_id"`
+	ProductCode        string `json:"product_code"`
+	ProductName        string `json:"product_name"`
+	ProductReferenceID int64  `json:"product_reference_id"`
+	ProductTypeID      int64  `json:"product_type_id"`
+	ProductTypeName    string `json:"product_type_name"`
+	ProductCategoryID  int64  `json:"product_category_id"`
+	ProductIsActive    bool   `json:"product_is_active"`
+
+	// product master
+	ProductMasterID          int64   `json:"product_master_id"`
+	ProductMasterPrice       float64 `json:"product_master_price"`
+	ProductMasterAdminFee    float64 `json:"product_master_admin_fee"`
+	ProductMasterMerchantFee float64 `json:"product_master_merchant_fee"`
+
+	// product provider
+	ProductProviderID          int64   `json:"product_provider_id"`
+	ProductProviderPrice       float64 `json:"product_provider_price"`
+	ProductProviderAdminFee    float64 `json:"product_provider_admin_fee"`
+	ProductProviderMerchantFee float64 `json:"product_provider_merchant_fee"`
+	ProductProviderCode        string  `json:"product_provider_code"`
+	ProductProviderName        string  `json:"product_provider_name"`
+
+	// provider
+	ProviderID          int64  `json:"provider_id"`
+	ProviderName        string `json:"provider_name"`
+	ProviderIsAvailable bool   `json:"provider_is_available"`
 }
 
 // 5. PAYMENT METHOD GATEWAY
@@ -272,25 +363,31 @@ type PaymentSegment struct {
 
 // 6. CORE TRANSACTION
 type Transaction struct {
-	ID                         int64   `json:"id"`
-	MerchantID                 int64   `json:"merchant_id"`
-	ProductID                  int64   `json:"product_id"`
-	ProductSegmentID           int64   `json:"product_segment_id"`
-	ProductProviderID          int64   `json:"product_provider_id"`
-	ProviderID                 int64   `json:"provider_id"`
-	ProductTypeID              int64   `json:"product_type_id"`
-	ProductReferenceID         int64   `json:"product_reference_id"`
-	PaymentChannelID           int64   `json:"payment_channel_id"`
-	ProductCode                string  `json:"product_code"`
-	MerchantName               string  `json:"merchant_name"`
-	ProductName                string  `json:"product_name"`
-	ProductSegmentName         string  `json:"product_segment_name"`
-	ProductProviderCode        string  `json:"product_provider_code"`
-	ProductProviderName        string  `json:"product_provider_name"`
-	ProviderName               string  `json:"provider_name"`
-	ProductTypeName            string  `json:"product_type_name"`
-	PaymentChannelName         string  `json:"payment_channel_name"`
+	ID                 int64 `json:"id"`
+	MerchantID         int64 `json:"merchant_id"`
+	AgentID            int64 `json:"agent_id"`
+	ProductID          int64 `json:"product_id"`
+	ProductSegmentID   int64 `json:"product_segment_id"`
+	ProductProviderID  int64 `json:"product_provider_id"`
+	ProviderID         int64 `json:"provider_id"`
+	ProductTypeID      int64 `json:"product_type_id"`
+	ProductReferenceID int64 `json:"product_reference_id"`
+	PaymentChannelID   int64 `json:"payment_channel_id"`
+	// snapshot string fields
+	ProductCode         string `json:"product_code"`
+	MerchantName        string `json:"merchant_name"`
+	ProductName         string `json:"product_name"`
+	ProductSegmentName  string `json:"product_segment_name"`
+	ProductProviderCode string `json:"product_provider_code"`
+	ProductProviderName string `json:"product_provider_name"`
+	ProviderName        string `json:"provider_name"`
+	ProductTypeName     string `json:"product_type_name"`
+	PaymentChannelName  string `json:"payment_channel_name"`
+	// fee breakdown
 	ProductProviderPrice       float64 `json:"product_provider_price"`
+	ProductMasterPrice         float64 `json:"product_master_price"`
+	ProductMasterAdminFee      float64 `json:"product_master_admin_fee"`
+	ProductMasterMerchantFee   float64 `json:"product_master_merchant_fee"`
 	ProductPrice               float64 `json:"product_price"`
 	ProductAdminFee            float64 `json:"product_admin_fee"`
 	ProductMerchantFee         float64 `json:"product_merchant_fee"`
@@ -298,20 +395,23 @@ type Transaction struct {
 	ProductProviderMerchantFee float64 `json:"product_provider_merchant_fee"`
 	PaymentAdminFee            float64 `json:"payment_admin_fee"`
 	TotalAmount                float64 `json:"total_amount"`
-	CustomerID                 string  `json:"customer_id"`
-	OtherCustomerID            string  `json:"other_customer_id"`
-	CustomerPhone              string  `json:"customer_phone,omitempty"`
-	ReferenceNumberInternal    string  `json:"reference_number_internal"`
-	ReferenceNumberMerchant    string  `json:"reference_number_merchant"`
-	ReferenceNumberProvider    string  `json:"reference_number_provider"`
-	SerialNumber               string  `json:"serial_number"`
-	StatusCode                 string  `json:"status_code"`
-	StatusMessage              string  `json:"status_message"`
-	RetryCount                 int     `json:"retry_count"`
-	CreatedAt                  string  `json:"created_at"`
-	CreatedBy                  string  `json:"created_by"`
-	UpdatedAt                  string  `json:"updated_at"`
-	UpdatedBy                  string  `json:"updated_by"`
+	// customer
+	CustomerID      string `json:"customer_id"`
+	OtherCustomerID string `json:"other_customer_id"`
+	CustomerPhone   string `json:"customer_phone,omitempty"`
+	// references
+	ReferenceNumberInternal string `json:"reference_number_internal"`
+	ReferenceNumberMerchant string `json:"reference_number_merchant"`
+	ReferenceNumberProvider string `json:"reference_number_provider"`
+	SerialNumber            string `json:"serial_number"`
+	// status
+	StatusCode    string `json:"status_code"`
+	StatusMessage string `json:"status_message"`
+	RetryCount    int    `json:"retry_count"`
+	CreatedAt     string `json:"created_at"`
+	CreatedBy     string `json:"created_by"`
+	UpdatedAt     string `json:"updated_at"`
+	UpdatedBy     string `json:"updated_by"`
 }
 
 type TransactionPayloadLog struct {
@@ -325,10 +425,11 @@ type TransactionPayloadLog struct {
 
 // WebApp Payloads
 type RegisterRequest struct {
-	Name        string `json:"name" validate:"required"`
-	Email       string `json:"email" validate:"required,email"`
-	PhoneNumber string `json:"phone_number" validate:"required"`
-	Password    string `json:"password" validate:"required,min=8"`
+	Name         string `json:"name" validate:"required"`
+	Email        string `json:"email" validate:"required,email"`
+	PhoneNumber  string `json:"phone_number" validate:"required"`
+	Password     string `json:"password" validate:"required,min=8"`
+	ReferralCode string `json:"referral_code,omitempty"`
 }
 
 type LoginRequest struct {
@@ -345,8 +446,8 @@ type UpdatePasswordRequest struct {
 
 type InquiryRequest struct {
 	ProductCode             string `json:"product_code" validate:"required"`
-	TargetUserID            string `json:"target_user_id" validate:"required"`
-	PaymentChannelCode      string `json:"payment_channel_code" validate:"required"`
+	CustomerID              string `json:"customer_id" validate:"required"`
+	PaymentChannelID        int64  `json:"payment_channel_id" validate:"required"`
 	ReferenceNumberMerchant string `json:"reference_number_merchant"`
 	ZoneID                  string `json:"zone_id"`
 	ServerID                string `json:"server_id"`
@@ -416,9 +517,10 @@ type RequestModelHasRoles struct {
 }
 
 type ModelHasRoleFilters struct {
-	ID     int64 `json:"id"`
-	UserID int64 `json:"user_id"`
-	RoleID int64 `json:"role_id"`
+	ID      int64 `json:"id"`
+	UserID  int64 `json:"user_id"`
+	RoleID  int64 `json:"role_id"`
+	ActorID int64 `json:"actor_id"`
 }
 
 type RequestProviders struct {
@@ -533,8 +635,9 @@ type RequestProductSegments struct {
 type ProductSegmentFilters struct {
 	ID                int64  `json:"id"`
 	SegmentID         *int64 `json:"segment_id"`
-	ProductProviderID *int64 `json:"product_provider_id"`
-	ProductID         int64  `json:"product_id"`
+	AgentID           int64  `json:"agent_id"`
+	ProductMasterID   *int64 `json:"product_master_id"`
+	ProductMasterCode string `json:"product_master_code"`
 	SegmentName       string `json:"segment_name"`
 }
 
@@ -584,6 +687,7 @@ type RequestTransactions struct {
 type TransactionFilters struct {
 	ID                      int64   `json:"id"`
 	MerchantID              int64   `json:"merchant_id"`
+	AgentID                 int64   `json:"agent_id"`
 	ProductID               *int64  `json:"product_id"`
 	ProductSegmentID        *int64  `json:"product_segment_id"`
 	ProductProviderID       *int64  `json:"product_provider_id"`
@@ -607,10 +711,13 @@ type TransactionFilters struct {
 type Segment struct {
 	ID          int64  `json:"id"`
 	SegmentName string `json:"segment_name"`
+	AgentID     int64  `json:"agent_id"`
 	CreatedAt   string `json:"created_at"`
 	CreatedBy   string `json:"created_by"`
 	UpdatedAt   string `json:"updated_at"`
 	UpdatedBy   string `json:"updated_by"`
+	// Join fields
+	AgentName string `json:"agent_name,omitempty"`
 }
 
 type RequestSegments struct {
@@ -625,7 +732,47 @@ type RequestSegments struct {
 
 type SegmentFilters struct {
 	ID          int64  `json:"id"`
+	AgentID     int64  `json:"agent_id"`
 	SegmentName string `json:"segment_name"`
+}
+
+// Agent request/filter types
+type RequestAgents struct {
+	Draw    int          `json:"draw"`
+	Search  string       `json:"search"`
+	Start   int          `json:"start"`
+	Length  int          `json:"length"`
+	Order   string       `json:"order"`
+	Sort    string       `json:"sort"`
+	Filters AgentFilters `json:"filters"`
+}
+
+type AgentFilters struct {
+	ID           int64  `json:"id"`
+	UserID       int64  `json:"user_id"`
+	AgentName    string `json:"agent_name"`
+	ReferralCode string `json:"referral_code"`
+	Status       string `json:"status"`
+}
+
+// ProductMaster request/filter types
+type RequestProductMasters struct {
+	Draw    int                  `json:"draw"`
+	Search  string               `json:"search"`
+	Start   int                  `json:"start"`
+	Length  int                  `json:"length"`
+	Order   string               `json:"order"`
+	Sort    string               `json:"sort"`
+	Filters ProductMasterFilters `json:"filters"`
+}
+
+type ProductMasterFilters struct {
+	ID                  int64  `json:"id"`
+	ProviderID          int64  `json:"provider_id"`
+	ProductID           int64  `json:"product_id"`
+	ProductProviderID   int64  `json:"product_provider_id"`
+	ProductSegmentIndex string `json:"product_segment_index"`
+	ProductName         string `json:"product_name"`
 }
 
 type RequestPaymentSegments struct {

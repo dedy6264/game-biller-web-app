@@ -1,9 +1,11 @@
 -- DROP tables if exist
 DROP TABLE IF EXISTS transaction_payload_logs CASCADE;
 DROP TABLE IF EXISTS transactions CASCADE;
+DROP TABLE IF EXISTS payment_segments CASCADE;
 DROP TABLE IF EXISTS payment_channels CASCADE;
 DROP TABLE IF EXISTS payment_methods CASCADE;
 DROP TABLE IF EXISTS product_segments CASCADE;
+DROP TABLE IF EXISTS product_masters CASCADE;
 DROP TABLE IF EXISTS segments CASCADE;
 DROP TABLE IF EXISTS product_providers CASCADE;
 DROP TABLE IF EXISTS products CASCADE;
@@ -16,6 +18,7 @@ DROP TABLE IF EXISTS saving_transactions CASCADE;
 DROP TABLE IF EXISTS saving_accounts CASCADE;
 DROP TABLE IF EXISTS merchant_api_credentials CASCADE;
 DROP TABLE IF EXISTS merchants CASCADE;
+DROP TABLE IF EXISTS agents CASCADE;
 DROP TABLE IF EXISTS otp_codes CASCADE;
 DROP TABLE IF EXISTS model_has_roles CASCADE;
 DROP TABLE IF EXISTS roles CASCADE;
@@ -37,7 +40,7 @@ CREATE TABLE users (
 
 CREATE TABLE roles (
   id BIGSERIAL PRIMARY KEY,
-  role_code VARCHAR(255) UNIQUE, -- super_admin, finance, cs, merchant_h2h, member_reseller, retail_guest
+  role_code VARCHAR(255) UNIQUE, -- super_admin, agent, merchant,admin
   role_name VARCHAR(255),
   created_at VARCHAR(255),
   created_by VARCHAR(255),
@@ -49,6 +52,7 @@ CREATE TABLE model_has_roles (
   id BIGSERIAL PRIMARY KEY,
   user_id BIGINT REFERENCES users(id) ON DELETE CASCADE UNIQUE,
   role_id BIGINT REFERENCES roles(id) ON DELETE CASCADE,
+  actor_id BIGINT DEFAULT 0, -- id dari tabel yang berkaitan, seperti agent_id, merchant_id dan jika role super_admin dan admin id = 0 
   created_at VARCHAR(255),
   created_by VARCHAR(255)
 );
@@ -67,9 +71,23 @@ CREATE TABLE otp_codes (
   created_by VARCHAR(255)
 );
 
+
+-- Agent
+CREATE TABLE agents (
+  id BIGSERIAL PRIMARY KEY,
+  agent_name VARCHAR(255),
+  user_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
+  referral_code VARCHAR(50) UNIQUE,
+  status VARCHAR(50) DEFAULT 'active', -- active, suspended
+  created_at VARCHAR(255),
+  created_by VARCHAR(255),
+  updated_at VARCHAR(255),
+  updated_by VARCHAR(255)
+);
 CREATE TABLE segments (
   id BIGSERIAL PRIMARY KEY,
   segment_name VARCHAR(255) UNIQUE NOT NULL,
+  agent_id BIGINT REFERENCES agents(id) ON DELETE CASCADE,
   created_at VARCHAR(255),
   created_by VARCHAR(255),
   updated_at VARCHAR(255),
@@ -79,6 +97,7 @@ CREATE TABLE segments (
 CREATE TABLE merchants (
   id BIGSERIAL PRIMARY KEY,
   user_id BIGINT REFERENCES users(id) ON DELETE CASCADE UNIQUE,
+  agent_id BIGINT REFERENCES agents(id) ON DELETE CASCADE,
   segment_id BIGINT REFERENCES segments(id) ON DELETE SET NULL,
   merchant_name VARCHAR(255),
   merchant_type VARCHAR(255), -- guest_retail, member_premium, h2h_api
@@ -203,11 +222,10 @@ CREATE TABLE product_providers (
 );
 
 
-CREATE TABLE product_segments (
+CREATE TABLE product_masters (
   id BIGSERIAL PRIMARY KEY,
-  segment_id BIGINT REFERENCES segments(id) ON DELETE SET NULL,
+  provider_id BIGINT REFERENCES providers(id) ON DELETE SET NULL,
   product_provider_id BIGINT REFERENCES product_providers(id) ON DELETE SET NULL,
-  segment_name VARCHAR(255), -- Public_Retail, Gold_Reseller, H2H_Partner
   product_name VARCHAR(255),
   product_segment_index VARCHAR(255) UNIQUE,
   provider_name VARCHAR(255),
@@ -220,6 +238,27 @@ CREATE TABLE product_segments (
   product_provider_price NUMERIC(15,2) DEFAULT 0.00,
   product_provider_admin_fee NUMERIC(15,2) DEFAULT 0.00,
   product_provider_merchant_fee NUMERIC(15,2) DEFAULT 0.00,
+  created_at VARCHAR(255),
+  created_by VARCHAR(255),
+  updated_at VARCHAR(255),
+  updated_by VARCHAR(255)
+);
+
+CREATE TABLE product_segments (
+  id BIGSERIAL PRIMARY KEY,
+  segment_id BIGINT REFERENCES segments(id) ON DELETE SET NULL,
+  segment_name VARCHAR(255), -- Public_Retail, Gold_Reseller, H2H_Partner
+  agent_id BIGINT REFERENCES agents(id) ON DELETE CASCADE,
+  product_master_id BIGINT REFERENCES product_masters(id) ON DELETE CASCADE,
+  product_master_code VARCHAR(255),
+  product_master_name VARCHAR(255),
+  product_master_price NUMERIC(15,2),
+  product_master_merchant_fee NUMERIC(15,2) DEFAULT 0.00,
+  product_segment_index VARCHAR(255) UNIQUE,
+  product_master_admin_fee NUMERIC(15,2) DEFAULT 0.00,
+  product_price NUMERIC(15,2) DEFAULT 0.00,
+  product_admin_fee NUMERIC(15,2) DEFAULT 0.00,
+  product_merchant_fee NUMERIC(15,2) DEFAULT 0.00,
   created_at VARCHAR(255),
   created_by VARCHAR(255),
   updated_at VARCHAR(255),
@@ -284,6 +323,10 @@ CREATE TABLE transactions (
   product_price NUMERIC(15,2),
   product_admin_fee NUMERIC(15,2),
   product_merchant_fee NUMERIC(15,2),
+  --product master
+  product_master_price NUMERIC(15,2),
+  product_master_admin_fee NUMERIC(15,2),
+  product_master_merchant_fee NUMERIC(15,2),
   --product provider
   product_provider_id BIGINT REFERENCES product_providers(id) ON DELETE SET NULL,
   product_provider_code VARCHAR(255),
@@ -300,6 +343,7 @@ CREATE TABLE transactions (
   product_segment_name VARCHAR(255),
   product_reference_id BIGINT REFERENCES product_references(id) ON DELETE SET NULL,
   payment_channel_id BIGINT REFERENCES payment_channels(id) ON DELETE SET NULL,
+  agent_id BIGINT REFERENCES agents(id) ON DELETE CASCADE,
   
   --snapshot_product_code VARCHAR(255),
   --snapshot_product_name VARCHAR(255),
@@ -404,16 +448,32 @@ CREATE INDEX IF NOT EXISTS idx_product_providers_provider_id          ON product
 CREATE INDEX IF NOT EXISTS idx_product_providers_is_available         ON product_providers(is_available);
 CREATE INDEX IF NOT EXISTS idx_product_providers_product_provider_code ON product_providers(product_provider_code);
 
+-- agents
+CREATE INDEX IF NOT EXISTS idx_agents_user_id        ON agents(user_id);
+CREATE INDEX IF NOT EXISTS idx_agents_referral_code  ON agents(referral_code);
+CREATE INDEX IF NOT EXISTS idx_agents_status         ON agents(status);
+
 -- segments
 CREATE INDEX IF NOT EXISTS idx_segments_segment_name  ON segments(segment_name);
+CREATE INDEX IF NOT EXISTS idx_segments_agent_id      ON segments(agent_id);
+
+-- merchants (agent relation)
+CREATE INDEX IF NOT EXISTS idx_merchants_agent_id     ON merchants(agent_id);
+
+-- product_masters
+CREATE INDEX IF NOT EXISTS idx_product_masters_provider_id          ON product_masters(provider_id);
+CREATE INDEX IF NOT EXISTS idx_product_masters_product_provider_id  ON product_masters(product_provider_id);
+CREATE INDEX IF NOT EXISTS idx_product_masters_product_id           ON product_masters(product_id);
+CREATE INDEX IF NOT EXISTS idx_product_masters_product_segment_index ON product_masters(product_segment_index);
 
 -- product_segments
-CREATE INDEX IF NOT EXISTS idx_product_segments_segment_id         ON product_segments(segment_id);
-CREATE INDEX IF NOT EXISTS idx_product_segments_product_id         ON product_segments(product_id);
-CREATE INDEX IF NOT EXISTS idx_product_segments_product_provider_id ON product_segments(product_provider_id);
-CREATE INDEX IF NOT EXISTS idx_product_segments_segment_name       ON product_segments(segment_name);
--- Composite: digunakan pada query GetProductSegmentByProductAndSegment
-CREATE INDEX IF NOT EXISTS idx_product_segments_product_segment_lookup ON product_segments(product_id, segment_name);
+CREATE INDEX IF NOT EXISTS idx_product_segments_segment_id          ON product_segments(segment_id);
+CREATE INDEX IF NOT EXISTS idx_product_segments_agent_id            ON product_segments(agent_id);
+CREATE INDEX IF NOT EXISTS idx_product_segments_product_master_id   ON product_segments(product_master_id);
+CREATE INDEX IF NOT EXISTS idx_product_segments_segment_name        ON product_segments(segment_name);
+CREATE INDEX IF NOT EXISTS idx_product_segments_product_segment_index ON product_segments(product_segment_index);
+-- Composite: digunakan pada query GetProductSegmentByMasterAndSegment
+CREATE INDEX IF NOT EXISTS idx_product_segments_master_segment_lookup ON product_segments(product_master_id, segment_id);
 
 -- payment_methods
 CREATE INDEX IF NOT EXISTS idx_payment_methods_method_code ON payment_methods(method_code);
@@ -443,6 +503,7 @@ CREATE INDEX IF NOT EXISTS idx_transactions_customer_id               ON transac
 CREATE INDEX IF NOT EXISTS idx_transactions_other_customer_id         ON transactions(other_customer_id);
 -- CREATE INDEX IF NOT EXISTS idx_transactions_snapshot_product_code     ON transactions(snapshot_product_code);
 -- Composite: merchant + status sering difilter bersamaan di dashboard
+CREATE INDEX IF NOT EXISTS idx_transactions_agent_id                  ON transactions(agent_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_merchant_status           ON transactions(merchant_id, status_code);
 
 -- transaction_payload_logs
@@ -451,11 +512,10 @@ CREATE INDEX IF NOT EXISTS idx_transaction_payload_logs_transaction_id ON transa
 --- Seed Initial Master Data
 
 INSERT INTO roles (role_code, role_name, created_at, updated_at) VALUES
-('super_admin', 'Super Administrator Internal', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')),
-('finance', 'Finance & Billing Internal', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')),
-('merchant_h2h', 'Mitra Host-to-Host API', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')),
-('member_reseller', 'Reseller VIP Dashboard', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')),
-('retail_guest', 'Pembeli Lepas Web Retail', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'));
+('super_admin', 'Super Administrator', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')),
+('admin', 'Administrator Internal', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')),
+('agent', 'Agen Distributor', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')),
+('merchant', 'Merchant / Mitra', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'));
 
 INSERT INTO product_types (product_type_name) VALUES
 ('Prepaid'),
@@ -644,40 +704,36 @@ INSERT INTO products (product_reference_id, product_type_id, product_category_id
  (2, 1, 1, 'PT10K', 'Pulsa Telkomsel 10K', true, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'sys', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'sys'),
  (2, 1, 1, 'PT5K', 'Pulsa Telkomsel 5K', true, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'sys', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'sys');
 
-INSERT INTO product_segments (segment_name, product_id, product_price, admin_fee, merchant_fee, created_at, created_by, updated_at, updated_by) VALUES
-('Open_Biller', 1, 20000.00, 1000.00, 0.00, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system'),
-('Public_Retail', 1, 20000.00, 1000.00, 0.00, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system'),
-('Gold_Reseller', 1, 19000.00, 500.00, 0.00, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system'),
-('H2H_Partner', 1, 18500.00, 200.00, 0.00, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system');
+-- Insert Initial Seed Users
+INSERT INTO users (id, name, email, phone_number, password_hash, status, created_at, created_by, updated_at, updated_by) VALUES
+(1, 'Super Admin', 'admin@gamebiller.com', '081234567890', '$2a$10$7rK9y3p2j1z0y9x8w7v6u5t4s3r2q1p0o9n8m7l6k5j4i3h2g1f0', 'active', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system'),
+(2, 'Agent Utama', 'agent1@gamebiller.com', '081234567891', '$2a$10$7rK9y3p2j1z0y9x8w7v6u5t4s3r2q1p0o9n8m7l6k5j4i3h2g1f0', 'active', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system');
+
+-- Insert Initial Seed Agents
+INSERT INTO agents (id, agent_name, user_id, referral_code, status, created_at, created_by, updated_at, updated_by) VALUES
+(1, 'Agent Utama Sistem', 2, 'AG-UTAMA', 'active', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system');
+
+-- Insert Initial Seed Segments
+INSERT INTO segments (id, segment_name, agent_id, created_at, created_by, updated_at, updated_by) VALUES
+(1, 'Open_Biller', 1, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system'),
+(2, 'Public_Retail', 1, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system'),
+(3, 'Gold_Reseller', 1, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system'),
+(4, 'H2H_Partner', 1, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system');
 
 -- Insert Product Provider
-INSERT INTO product_providers (provider_id, product_provider_code, product_provider_price, product_provider_admin_fee, product_provider_merchant_fee, provider_index, is_available, created_at, created_by, updated_at, updated_by) VALUES
-(1, 'ML_86_IAK', 18000.00, 0.00, 0.00, 1, true, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system'),
-(1, 'hsteam400000', 400000, 0, 0, 1, true, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'SYSTEM_SEED', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'SYSTEM_SEED'),
-(1, 'hsteam250000', 250000, 0, 0, 1, true, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'SYSTEM_SEED', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'SYSTEM_SEED'),
-(1, 'hsteam120000', 120000, 0, 0, 1, true, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'SYSTEM_SEED', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'SYSTEM_SEED'),
-(1, 'hsteam90000', 90000, 0, 0, 1, true, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'SYSTEM_SEED', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'SYSTEM_SEED'),
-(1, 'hsteam60000', 60000, 0, 0, 1, true, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'SYSTEM_SEED', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'SYSTEM_SEED'),
-(1, 'hsteam45000', 45000, 0, 0, 1, true, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'SYSTEM_SEED', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'SYSTEM_SEED'),
-(1, 'hsteam12000', 12000, 0, 0, 1, true, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'SYSTEM_SEED', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'SYSTEM_SEED'),
-(1, 'hsteam8000', 9500, 0, 0, 1, true, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'SYSTEM_SEED', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'SYSTEM_SEED'),
-(1, 'hsteam6000', 7000, 0, 0, 1, true, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'SYSTEM_SEED', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'SYSTEM_SEED'),
-(1, 'valorant11000', 1030000, 0, 0, 1, true, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'admin', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'admin'),
-(1, 'valorant5350', 525000, 0, 0, 1, true, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'admin', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'admin'),
-(1, 'valorant4125', 418000, 0, 0, 1, true, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'admin', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'admin'),
-(1, 'valorant3650', 368800, 0, 0, 1, true, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'admin', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'admin'),
-(1, 'valorant2050', 212400, 0, 0, 1, true, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'admin', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'admin'),
-(1, 'valorant1000', 106200, 0, 0, 1, true, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'admin', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'admin'),
-(1, 'valorant475', 53400, 0, 0, 1, true, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'admin', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'admin'),
-(1, 'ragnarokbcc18', 45000, 0, 0, 1, true, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'admin', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'admin'),
-(1, 'ragnarokbcc12', 30000, 0, 0, 1, true, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'admin', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'admin'),
-(1, 'ragnarokbcc6', 15000, 0, 0, 1, true, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'admin', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'admin'),
-(1, 'freefire12', 1940, 0, 0, 1, true, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'admin', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'admin'),
-(1, 'freefire10', 1800, 0, 0, 1, true, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'admin', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'admin'),
-(1, 'freefire5', 970, 0, 0, 1, true, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'admin', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'admin'),
-(1, 'hmobilelegend10', 3100, 0, 0, 1, true, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'admin', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'admin'),
-(1, 'hmobilelegend5', 1620, 0, 0, 1, true, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'admin', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'admin'),
-(1, 'hmobilelegend3', 1100, 0, 0, 1, true, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'admin', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'admin');
+INSERT INTO product_providers (id, provider_id, product_provider_code, product_provider_name, product_provider_price, product_provider_admin_fee, product_provider_merchant_fee, provider_index, is_available, created_at, created_by, updated_at, updated_by) VALUES
+(1, 1, 'ML_86_IAK', 'ML_86_IAK', 18000.00, 0.00, 0.00, 1, true, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system');
+
+-- Insert Product Masters
+INSERT INTO product_masters (id, provider_id, product_provider_id, product_name, product_segment_index, provider_name, product_provider_code, product_provider_name, product_id, product_price, admin_fee, merchant_fee, product_provider_price, product_provider_admin_fee, product_provider_merchant_fee, created_at, created_by, updated_at, updated_by) VALUES
+(1, 1, 1, 'Mobile Legends 86 Diamonds', '1_1', 'IAK Provider', 'ML_86_IAK', 'ML_86_IAK', 1, 18000.00, 500.00, 0.00, 18000.00, 0.00, 0.00, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system');
+
+-- Insert Product Segments
+INSERT INTO product_segments (segment_id, agent_id, product_master_id, segment_name, product_master_code, product_master_name, product_master_price, product_master_admin_fee, product_master_merchant_fee, product_segment_index, product_price, product_admin_fee, product_merchant_fee, created_at, created_by, updated_at, updated_by) VALUES
+(1, 1, 1, 'Open_Biller', 'ML_86_IAK', 'Mobile Legends 86 Diamonds', 18000.00, 500.00, 0.00, '1_1', 20000.00, 1000.00, 0.00, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system'),
+(2, 1, 1, 'Public_Retail', 'ML_86_IAK', 'Mobile Legends 86 Diamonds', 18000.00, 500.00, 0.00, '2_1', 20000.00, 1000.00, 0.00, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system'),
+(3, 1, 1, 'Gold_Reseller', 'ML_86_IAK', 'Mobile Legends 86 Diamonds', 18000.00, 500.00, 0.00, '3_1', 19000.00, 500.00, 0.00, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system'),
+(4, 1, 1, 'H2H_Partner', 'ML_86_IAK', 'Mobile Legends 86 Diamonds', 18000.00, 500.00, 0.00, '4_1', 18500.00, 200.00, 0.00, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system');
 
 -- Insert Payment Segments (Mapping Payment Channels per Segment)
 INSERT INTO payment_segments (segment_id, payment_method_id, payment_channel_id, segment_name, method_code, channel_code, channel_name, is_active, created_at, created_by, updated_at, updated_by) VALUES
@@ -704,3 +760,21 @@ INSERT INTO payment_segments (segment_id, payment_method_id, payment_channel_id,
 -- Segment 4: H2H_Partner (API Partner - Deposit Balance ONLY)
 (4, 1, 1, 'H2H_Partner', 'DEPOSIT', 'BALANCE_INTERNAL', 'Saldo Deposit Akun', true, TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system', TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), 'system')
 ON CONFLICT DO NOTHING;
+
+-- Reset Sequence Generators to max ID
+SELECT setval('users_id_seq', COALESCE((SELECT MAX(id) FROM users), 1));
+SELECT setval('roles_id_seq', COALESCE((SELECT MAX(id) FROM roles), 1));
+SELECT setval('agents_id_seq', COALESCE((SELECT MAX(id) FROM agents), 1));
+SELECT setval('segments_id_seq', COALESCE((SELECT MAX(id) FROM segments), 1));
+SELECT setval('product_types_id_seq', COALESCE((SELECT MAX(id) FROM product_types), 1));
+SELECT setval('product_categories_id_seq', COALESCE((SELECT MAX(id) FROM product_categories), 1));
+SELECT setval('product_references_id_seq', COALESCE((SELECT MAX(id) FROM product_references), 1));
+SELECT setval('product_prefixes_id_seq', COALESCE((SELECT MAX(id) FROM product_prefixes), 1));
+SELECT setval('providers_id_seq', COALESCE((SELECT MAX(id) FROM providers), 1));
+SELECT setval('products_id_seq', COALESCE((SELECT MAX(id) FROM products), 1));
+SELECT setval('product_providers_id_seq', COALESCE((SELECT MAX(id) FROM product_providers), 1));
+SELECT setval('product_masters_id_seq', COALESCE((SELECT MAX(id) FROM product_masters), 1));
+SELECT setval('product_segments_id_seq', COALESCE((SELECT MAX(id) FROM product_segments), 1));
+SELECT setval('payment_methods_id_seq', COALESCE((SELECT MAX(id) FROM payment_methods), 1));
+SELECT setval('payment_channels_id_seq', COALESCE((SELECT MAX(id) FROM payment_channels), 1));
+SELECT setval('payment_segments_id_seq', COALESCE((SELECT MAX(id) FROM payment_segments), 1));

@@ -1,8 +1,12 @@
 package main
 
 import (
+	"encoding/json"
+	"fmt"
 	"gamebiller/configs"
 	"gamebiller/connections"
+	"gamebiller/helpers"
+	"gamebiller/repositories"
 	"gamebiller/routes"
 	"net/http"
 
@@ -16,7 +20,13 @@ func main() {
 	defer connections.DBconn().Close()
 
 	e := echo.New()
-
+	var db = connections.DBconn()
+	productSegment, err := repositories.GetProductSegmentJoinProvider(db, 6, "ML_5", "")
+	if err != nil {
+		helpers.ProcessLogger(nil, "svc", err.Error(), "Failed to get product segment")
+	}
+	aa, _ := json.Marshal(productSegment)
+	fmt.Println(string(aa))
 	// Middleware
 	// e.Use(middleware.Logger())
 	e.Use(middleware.Recover())

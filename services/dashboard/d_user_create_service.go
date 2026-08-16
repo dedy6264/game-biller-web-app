@@ -23,7 +23,7 @@ func AdminCreateUser(c echo.Context) error {
 	now := time.Now().Format(time.RFC3339)
 	u.CreatedAt = now
 	u.UpdatedAt = now
-	
+
 	// Check email/phone uniqueness
 	db := connections.DBconn()
 	if _, err := repositories.GetUserByEmailOrPhone(db, u.Email); err == nil {

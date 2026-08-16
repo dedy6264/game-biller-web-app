@@ -15,15 +15,15 @@ func CreateTransaction(exec QueryExecutor, t *models.Transaction) (int64, error)
 	                                  product_code, merchant_name, product_name, product_segment_name, product_provider_code, product_provider_name, provider_name, product_type_name, payment_channel_name,
 	                                  product_provider_price, product_price, product_admin_fee, product_merchant_fee, product_provider_admin_fee, product_provider_merchant_fee, payment_admin_fee, total_amount, 
 	                                  customer_id, other_customer_id, customer_phone, reference_number_internal, reference_number_merchant, reference_number_provider, serial_number, 
-	                                  status_code, status_message, retry_count, created_at, created_by, updated_at, updated_by)
-	          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`
+	                                  status_code, status_message, product_master_price,product_master_admin_fee,product_master_merchant_fee,retry_count,agent_id, created_at, created_by, updated_at, updated_by)
+	          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?) RETURNING id`
 	query = helpers.QuerySupport(query)
 	var id int64
 	err := exec.QueryRow(query, t.MerchantID, t.ProductID, t.ProductSegmentID, t.ProductProviderID, t.ProviderID, t.ProductTypeID, t.ProductReferenceID, t.PaymentChannelID,
 		t.ProductCode, t.MerchantName, t.ProductName, t.ProductSegmentName, t.ProductProviderCode, t.ProductProviderName, t.ProviderName, t.ProductTypeName, t.PaymentChannelName,
 		t.ProductProviderPrice, t.ProductPrice, t.ProductAdminFee, t.ProductMerchantFee, t.ProductProviderAdminFee, t.ProductProviderMerchantFee, t.PaymentAdminFee, t.TotalAmount,
 		t.CustomerID, t.OtherCustomerID, t.CustomerPhone, t.ReferenceNumberInternal, t.ReferenceNumberMerchant, t.ReferenceNumberProvider, t.SerialNumber,
-		t.StatusCode, t.StatusMessage, t.RetryCount, t.CreatedAt, t.CreatedBy, t.UpdatedAt, t.UpdatedBy).Scan(&id)
+		t.StatusCode, t.StatusMessage, t.ProductMasterPrice, t.ProductMasterAdminFee, t.ProductMasterMerchantFee, t.RetryCount, t.AgentID, t.CreatedAt, t.CreatedBy, t.UpdatedAt, t.UpdatedBy).Scan(&id)
 	if err != nil {
 		return 0, err
 	}
