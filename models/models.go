@@ -84,7 +84,7 @@ type Merchant struct {
 	UserID       int64  `json:"user_id"`
 	AgentID      int64  `json:"agent_id"`
 	SegmentID    int64  `json:"segment_id"`
-	ReferralCode int64  `json:"referral_code"`
+	ReferralCode string `json:"referral_code"`
 	MerchantName string `json:"merchant_name"`
 	MerchantType string `json:"merchant_type"` // guest_retail, member_premium, h2h_api
 	Status       string `json:"status"`
@@ -405,13 +405,15 @@ type Transaction struct {
 	ReferenceNumberProvider string `json:"reference_number_provider"`
 	SerialNumber            string `json:"serial_number"`
 	// status
-	StatusCode    string `json:"status_code"`
-	StatusMessage string `json:"status_message"`
-	RetryCount    int    `json:"retry_count"`
-	CreatedAt     string `json:"created_at"`
-	CreatedBy     string `json:"created_by"`
-	UpdatedAt     string `json:"updated_at"`
-	UpdatedBy     string `json:"updated_by"`
+	StatusCode          string `json:"status_code"`
+	StatusMessage       string `json:"status_message"`
+	StatusCodeDetail    string `json:"status_code_detail"`
+	StatusMessageDetail string `json:"status_message_detail"`
+	RetryCount          int    `json:"retry_count"`
+	CreatedAt           string `json:"created_at"`
+	CreatedBy           string `json:"created_by"`
+	UpdatedAt           string `json:"updated_at"`
+	UpdatedBy           string `json:"updated_by"`
 }
 
 type TransactionPayloadLog struct {

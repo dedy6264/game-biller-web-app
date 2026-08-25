@@ -51,6 +51,7 @@ type (
 type (
 	InquiryResult struct {
 		StatusCode      string           `json:"status_code"`
+		IsInquiry       string           `json:"is_inquiry"`
 		RefID           string           `json:"ref_id"`          // Reference ID dari Main Service
 		ProviderRefID   string           `json:"provider_ref_id"` // Transaction ID / Invoice ID dari Provider
 		DataTransaction DataTransaction  `json:"data_transaction"`

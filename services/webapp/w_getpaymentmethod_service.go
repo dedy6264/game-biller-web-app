@@ -26,18 +26,19 @@ func GetPaymentMethod(c echo.Context) error {
 	claims, ok := helpers.GetClaims(c)
 	if !ok {
 		helpers.ProcessLogger(c, svc, "Failed to get claims", "Authorization error")
-		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrAuth419, nil))
-	}
-	// Resolve segment from JWT claims if user/merchant is logged in
-	merchant, err := repositories.GetMerchantByID(db, claims.MerchantID)
-	if err != nil || merchant.Status != "active" {
-		helpers.ProcessLogger(c, svc, "Failed to get merchant or merchant inactive", "Validation error")
-		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrInt201, nil))
-	}
-	if merchant.SegmentID != 0 {
-		segmentID = merchant.SegmentID
+		segmentID = 2
+		// return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrAuth419, nil))
 	} else {
-		segmentID = 1
+
+		// Resolve segment from JWT claims if user/merchant is logged in
+		merchant, err := repositories.GetMerchantByID(db, claims.MerchantID)
+		if err != nil || merchant.Status != "active" {
+			helpers.ProcessLogger(c, svc, "Failed to get merchant or merchant inactive", "Validation error")
+			return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrInt201, nil))
+		}
+		if merchant.SegmentID != 0 {
+			segmentID = merchant.SegmentID
+		}
 	}
 
 	list, err := repositories.GetPaymentMethodsWithChannelsBySegmentID(db, segmentID)

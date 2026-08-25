@@ -23,13 +23,13 @@ func IAKCallback(c echo.Context) error {
 
 	if err := c.Bind(&payload); err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to bind callback request")
-		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidTransaction, nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidRequest, nil))
 	}
 
 	data := payload.Data
 	if strings.TrimSpace(data.RefID) == "" && strings.TrimSpace(data.TrID) == "" {
 		helpers.ProcessLogger(c, svc, "ref_id and tr_id are both empty", "Validation error")
-		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidTransaction, nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidRequest, nil))
 	}
 
 	db := connections.DBconn()
@@ -47,13 +47,13 @@ func IAKCallback(c echo.Context) error {
 	}
 	if err != nil || trx == nil {
 		helpers.ProcessLogger(c, svc, fmt.Sprintf("Transaction not found for ref_id=%s tr_id=%s", data.RefID, data.TrID), "Validation error")
-		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidTransaction, nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidTransactionNoOrStatus, nil))
 	}
 
 	// 3. Validasi status data transaksi, jika status bukan payment pending return invalid transaksi
-	if trx.StatusCode != helpers.CodeIntrPending {
+	if trx.StatusCode != helpers.CodePending {
 		helpers.ProcessLogger(c, svc, fmt.Sprintf("Transaction status is not pending: %s", trx.StatusCode), "Validation error")
-		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidTransaction, nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidTransactionNoOrStatus, nil))
 	}
 
 	// 4. Jika status pending, update sesuai status callback, sukses atau gagal berikut dengan kelengkapan data seperti sn dan data lainnya
@@ -74,7 +74,8 @@ func IAKCallback(c echo.Context) error {
 	now := time.Now().Format(time.RFC3339)
 	trx.UpdatedAt = now
 	trx.UpdatedBy = "CALLBACK_IAK"
-
+	trx.StatusCodeDetail = data.RC
+	trx.StatusMessageDetail = data.Message
 	err = helpers.DBTransaction(db, func(tx *sql.Tx) error {
 		return repositories.UpdateTransaction(tx, trx)
 	})

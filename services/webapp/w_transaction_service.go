@@ -18,14 +18,14 @@ func TransactionHistory(c echo.Context) error {
 	claims, ok := helpers.GetClaims(c)
 	if !ok {
 		helpers.ProcessLogger(c, svc, "Failed to get claims", "Authorization error")
-		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrAuth419, nil))
+		return c.JSON(http.StatusUnauthorized, helpers.BuildResponse(helpers.CodeErrAuth419, nil))
 	}
 
 	var req models.RequestTransactions
 	if err := c.Bind(&req); err != nil {
 		// Allow defaults
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to bind request")
-
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidRequest, nil))
 	}
 
 	if req.Length <= 0 {
@@ -33,10 +33,10 @@ func TransactionHistory(c echo.Context) error {
 	}
 
 	db := connections.DBconn()
-	list, total, err := repositories.GetTransactionsListByMerchantID(db, claims.MerchantID, req.Search, req.Start, req.Length, req.Order, req.Sort, req.Filters)
+	list, total, err := repositories.GetTransactionsListByFilter(db, claims.MerchantID, req.Search, req.Start, req.Length, req.Order, req.Sort, req.Filters)
 	if err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to get transaction list")
-		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrSys500, nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeServiceDisruption, nil))
 	}
 
 	return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeSuccess, map[string]any{
@@ -55,20 +55,20 @@ func TransactionUnSubscribeHistory(c echo.Context) error {
 	if err := c.Bind(&req); err != nil {
 		// Allow defaults
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to bind request")
-
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidRequest, nil))
 	}
-
 	if req.Length <= 0 {
 		req.Length = 10
 	}
 	if req.Filters.CustomerPhone == "" {
-		req.Filters.CustomerPhone = "-"
+		helpers.ProcessLogger(c, svc, nil, "Invalid Customer Phone")
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidRequest, nil))
 	}
 	db := connections.DBconn()
-	list, total, err := repositories.GetTransactionsListByMerchantID(db, 0, req.Search, req.Start, req.Length, req.Order, req.Sort, req.Filters)
+	list, total, err := repositories.GetTransactionsListByFilter(db, 0, req.Search, req.Start, req.Length, req.Order, req.Sort, req.Filters)
 	if err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to get transaction list")
-		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrSys500, nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeServiceDisruption, nil))
 	}
 
 	return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeSuccess, map[string]any{

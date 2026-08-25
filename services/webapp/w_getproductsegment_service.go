@@ -51,8 +51,8 @@ func GetProductSegment(c echo.Context) error {
 		// User sudah login → tampilkan produk sesuai segment merchantnya saja
 		list, err = repositories.GetProductSegmentsByRefCodeAndSegment(db, refCode, segmentID)
 	} else {
-		// Guest / tidak login → tampilkan default segment (Public_Retail)
-		list, err = repositories.GetProductSegmentsByRefCodeAndSegment(db, refCode, 1)
+		// Guest / tidak login → tampilkan default segment (Unsubscribe 2))
+		list, err = repositories.GetProductSegmentsByRefCodeAndSegment(db, refCode, 2)
 	}
 
 	if err != nil {

@@ -47,34 +47,34 @@ func Inquiry(c echo.Context) error {
 	claims, ok := helpers.GetClaims(c)
 	if !ok {
 		helpers.ProcessLogger(c, svc, "Failed to get claims", "Authorization error")
-		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrAuth419, nil))
+		return c.JSON(http.StatusUnauthorized, helpers.BuildResponse(helpers.CodeErrAuth419, nil))
 	}
 
 	var req models.InquiryRequest
 	if err := c.Bind(&req); err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to bind request")
-		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidRequest, nil))
 	}
 
 	// 2. Validasi customer_id (customer_id)
 	// if strings.TrimSpace(req.CustomerID) == "" {
 	// 	helpers.ProcessLogger(c, svc, "customer_id is empty", "Validation error")
-	// 	return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
+	// 	return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidRequest, nil))
 	// }
 	if req.CustomerID == "" {
 		helpers.ProcessLogger(c, svc, "Customer id invalid ", "Validation error")
-		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustID, nil))
 	}
 	if req.PaymentChannelID == 0 {
 		// Validate payment channel
 		helpers.ProcessLogger(c, svc, "Payment channel invalid or inactive", "Validation error")
-		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidPayment, nil))
 	}
 	// 3. Get segment ID melalui repo GetMerchantByID
 	merchant, err := repositories.GetMerchantByID(db, claims.MerchantID)
 	if err != nil || merchant.Status != "active" {
 		helpers.ProcessLogger(c, svc, "Failed to get merchant or merchant inactive", "Validation error")
-		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrInt201, nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeServiceDisruption, nil))
 	}
 	if merchant.SegmentID != 0 {
 		segmentID = merchant.SegmentID
@@ -86,7 +86,7 @@ func Inquiry(c echo.Context) error {
 	productSegment, err := repositories.GetProductSegmentJoinProvider(db, segmentID, req.ProductCode, "")
 	if err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Product segment not found for this merchant/product")
-		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidProductSegmnt, nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidProduct, nil))
 	}
 	// Validasi ketersediaan produk & provider
 	// if !productSegment.ProductIsActive {
@@ -96,7 +96,7 @@ func Inquiry(c echo.Context) error {
 
 	if !productSegment.ProviderIsAvailable {
 		helpers.ProcessLogger(c, svc, "Product provider is not available", "Validation error")
-		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrPvd2301, nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidProduct, nil))
 	}
 	// 5. get payment segment by payment_channel_id (req.PaymentChannelID) or default QRIS_GATEWAY
 	var channel *models.PaymentChannel
@@ -105,8 +105,8 @@ func Inquiry(c echo.Context) error {
 	} else {
 		channel, err = repositories.GetPaymentChannelByCode(db, "QRIS_GATEWAY")
 	}
-	aa, _ := json.Marshal(channel)
-	fmt.Println("PAYMENT METHOD:: ", string(aa))
+	// aa, _ := json.Marshal(channel)
+	// fmt.Println("PAYMENT METHOD:: ", string(aa))
 	paymentFee = channel.FeeValue
 
 	// Resolve harga buy price dari provider
@@ -170,14 +170,16 @@ func Inquiry(c echo.Context) error {
 		OtherCustomerID: string(bytes),
 		CustomerPhone:   req.CustomerPhone,
 
-		StatusCode:    "", //belum memiliki status atau inquiry proccess
-		StatusMessage: "INQUIRY_PROCCESS",
-		RetryCount:    0,
-		CreatedAt:     now,
-		CreatedBy:     "sys",
-		UpdatedAt:     now,
-		UpdatedBy:     "sys",
-		AgentID:       merchant.AgentID,
+		StatusCode:          "", //belum memiliki status atau inquiry proccess
+		StatusMessage:       "INQUIRY_PROCCESS",
+		StatusCodeDetail:    "", //belum memiliki status atau inquiry proccess
+		StatusMessageDetail: "INQUIRY_PROCCESS",
+		RetryCount:          0,
+		CreatedAt:           now,
+		CreatedBy:           "sys",
+		UpdatedAt:           now,
+		UpdatedBy:           "sys",
+		AgentID:             merchant.AgentID,
 	}
 	// aa, _ = json.Marshal(productSegment)
 	// fmt.Println(productSegment.ProductPrice)
@@ -188,7 +190,7 @@ func Inquiry(c echo.Context) error {
 	})
 	if err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to create transaction")
-		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrSys500, nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeServiceDisruption, nil))
 	}
 
 	// 8. Validasi provider — jika provider_id = 1 (IAK), panggil worker IAK inquiry
@@ -210,7 +212,13 @@ func Inquiry(c echo.Context) error {
 		iakResult, err := callIAKInquiry(iakReq)
 		if err != nil {
 			helpers.ProcessLogger(c, svc, err.Error(), "IAK worker call failed, transaction left as PENDING")
+			trx.StatusCode = helpers.CodeServiceDisruption
+			trx.StatusMessage = "INQUIRY_FAILED"
+			trx.UpdatedAt = time.Now().Format(time.RFC3339)
+			trx.UpdatedBy = "sys"
 		} else {
+			trx.StatusCodeDetail = iakResult.ProviderDetail.Code
+			trx.StatusMessageDetail = iakResult.ProviderDetail.Message
 			trx.UpdatedAt = time.Now().Format(time.RFC3339)
 			trx.UpdatedBy = "sys"
 
@@ -229,12 +237,22 @@ func Inquiry(c echo.Context) error {
 				trx.StatusCode = helpers.CodeInqSuccess
 				trx.StatusMessage = iakResult.ProviderDetail.Message
 			}
+			if iakResult.IsInquiry != "Y" {
+				iakResult.DataTransaction.AdminFee = trx.ProductProviderAdminFee
+				iakResult.DataTransaction.Price = trx.ProductProviderPrice
+				iakResult.DataTransaction.MerchantFee = trx.ProductProviderMerchantFee
+				iakResult.DataTransaction.CustomerID = trx.CustomerID
+
+			}
 			//sementara pembeda baku berdasar prepaid/postpaid
 			if productSegment.ProductTypeID == 1 { //prepaid
 				totalAmount = productSegment.ProductPrice + iakResult.DataTransaction.AdminFee + paymentFee
 			} else {
 				totalAmount = iakResult.DataTransaction.Price + iakResult.DataTransaction.AdminFee + paymentFee
 			}
+			s, _ := json.Marshal(iakResult)
+			fmt.Println(string(s))
+			fmt.Println("\\", trx.ProductProviderPrice, "\\", iakResult.DataTransaction.Price, "\\", iakResult)
 			if iakResult.DataTransaction.Price != 0 {
 				trx.ProductProviderPrice = iakResult.DataTransaction.Price
 			}
@@ -261,12 +279,14 @@ func Inquiry(c echo.Context) error {
 		trx.UpdatedBy = "sys"
 
 	}
+	fmt.Println("\\", trx.ProductProviderPrice, "\\")
+
 	err = helpers.DBTransaction(db, func(tx *sql.Tx) error {
 		return repositories.UpdateTransaction(tx, &trx)
 	})
 	if err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to update transaction")
-		trx.StatusCode = helpers.CodeErrSys500
+		trx.StatusCode = helpers.CodeServiceDisruption
 		// return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrSys500, nil))
 	}
 	return c.JSON(http.StatusOK, helpers.BuildResponse(trx.StatusCode, map[string]any{
@@ -294,20 +314,18 @@ func InquiryUnSubscribe(c echo.Context) error {
 	var req models.InquiryRequest
 	if err := c.Bind(&req); err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to bind request")
-		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidRequest, nil))
 	}
-
-	// 2. Validasi customer_id (customer_id)
 	if req.CustomerPhone == "" {
 		helpers.ProcessLogger(c, svc, "Customer Phone is empty", "Validation error")
-		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidRequest, nil))
 	}
 	mid, _ := strconv.Atoi(configs.DEFAULT_MID)
-	// 3. Get segment ID melalui repo GetMerchantByID
+	//set merchant id default untuk blind transaction
 	merchant, err := repositories.GetMerchantByID(db, int64(mid))
 	if err != nil || merchant.Status != "active" {
 		helpers.ProcessLogger(c, svc, "Failed to get merchant or merchant inactive", "Validation error")
-		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrInt201, nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeServiceDisruption, nil))
 	}
 	if merchant.SegmentID != 0 {
 		segmentID = merchant.SegmentID
@@ -319,24 +337,24 @@ func InquiryUnSubscribe(c echo.Context) error {
 	productSegment, err := repositories.GetProductSegmentJoinProvider(db, segmentID, req.ProductCode, "")
 	if err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Product segment not found for this merchant/product")
-		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidProductSegmnt, nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidProduct, nil))
 	}
 
 	// Validasi ketersediaan produk & provider
 	if !productSegment.ProductIsActive {
 		helpers.ProcessLogger(c, svc, "Product is inactive", "Validation error")
-		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidProductNotFound, nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidProduct, nil))
 	}
 
 	if !productSegment.ProviderIsAvailable {
 		helpers.ProcessLogger(c, svc, "Product provider is not available", "Validation error")
-		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrPvd2301, nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidProduct, nil))
 	}
 	// 5. get payment segment
 	channel, err := repositories.GetPaymentChannelByCode(db, "QRIS_GATEWAY") //default QRIS_GATEWAY
 	if err != nil || !channel.IsActive {
 		helpers.ProcessLogger(c, svc, "Payment channel invalid or inactive", "Validation error")
-		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidCustId, nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidPayment, nil))
 	}
 
 	paymentFee = channel.FeeValue
@@ -372,6 +390,10 @@ func InquiryUnSubscribe(c echo.Context) error {
 		ProductTypeName:    productSegment.ProductTypeName,
 		ProductReferenceID: productSegment.ProductReferenceID,
 
+		ProductMasterPrice:       productSegment.ProductMasterPrice,
+		ProductMasterAdminFee:    productSegment.ProductMasterAdminFee,
+		ProductMasterMerchantFee: productSegment.ProductMasterMerchantFee,
+
 		ProductProviderID:          productSegment.ProductProviderID,
 		ProductProviderName:        productSegment.ProductProviderName,
 		ProductProviderCode:        productSegment.ProductProviderCode,
@@ -396,14 +418,18 @@ func InquiryUnSubscribe(c echo.Context) error {
 
 		CustomerID:      req.CustomerID,
 		OtherCustomerID: string(bytes),
+		CustomerPhone:   req.CustomerPhone,
 
-		StatusCode:    "", //belum memiliki status atau inquiry proccess
-		StatusMessage: "INQUIRY_PROCCESS",
-		RetryCount:    0,
-		CreatedAt:     now,
-		CreatedBy:     "sys",
-		UpdatedAt:     now,
-		UpdatedBy:     "sys",
+		StatusCode:          "", //belum memiliki status atau inquiry proccess
+		StatusMessage:       "INQUIRY_PROCCESS",
+		StatusCodeDetail:    "", //belum memiliki status atau inquiry proccess
+		StatusMessageDetail: "INQUIRY_PROCCESS",
+		RetryCount:          0,
+		CreatedAt:           now,
+		CreatedBy:           "sys",
+		UpdatedAt:           now,
+		UpdatedBy:           "sys",
+		AgentID:             merchant.AgentID,
 	}
 
 	err = helpers.DBTransaction(db, func(tx *sql.Tx) error {
@@ -412,7 +438,7 @@ func InquiryUnSubscribe(c echo.Context) error {
 	})
 	if err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to create transaction")
-		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeErrSys500, nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeServiceDisruption, nil))
 	}
 
 	// 8. Validasi provider — jika provider_id = 1 (IAK), panggil worker IAK inquiry
@@ -434,10 +460,15 @@ func InquiryUnSubscribe(c echo.Context) error {
 		iakResult, err := callIAKInquiry(iakReq)
 		if err != nil {
 			helpers.ProcessLogger(c, svc, err.Error(), "IAK worker call failed, transaction left as PENDING")
+			trx.StatusCode = helpers.CodeServiceDisruption
+			trx.StatusMessage = "INQUIRY_FAILED"
+			trx.UpdatedAt = time.Now().Format(time.RFC3339)
+			trx.UpdatedBy = "sys"
 		} else {
 			trx.UpdatedAt = time.Now().Format(time.RFC3339)
 			trx.UpdatedBy = "sys"
-
+			trx.StatusCodeDetail = iakResult.ProviderDetail.Code
+			trx.StatusMessageDetail = iakResult.ProviderDetail.Message
 			if iakResult.StatusCode == helpers.CodeInqSuccess {
 				trx.StatusCode = helpers.CodeInqSuccess
 				trx.StatusMessage = "INQUIRY_SUCCESS"
@@ -452,6 +483,12 @@ func InquiryUnSubscribe(c echo.Context) error {
 			} else {
 				trx.StatusCode = helpers.CodeInqSuccess
 				trx.StatusMessage = iakResult.ProviderDetail.Message
+			}
+			if iakResult.IsInquiry != "Y" {
+				iakResult.DataTransaction.AdminFee = trx.ProductProviderAdminFee
+				iakResult.DataTransaction.Price = trx.ProductProviderPrice
+				iakResult.DataTransaction.MerchantFee = trx.ProductProviderMerchantFee
+				iakResult.DataTransaction.CustomerID = trx.CustomerID
 			}
 			//sementara pembeda baku berdasar prepaid/postpaid
 			if productSegment.ProductTypeID == 1 { //prepaid

@@ -17,9 +17,9 @@ type ResponseMetadata struct {
 // Response Code Constants
 const (
 	// Webpage - SUC / PEN / INQ
-	CodeSuccess     = "SUC-INT-000" //Success
-	CodeInqSuccess  = "INQ-INT-001" //Inq Success
-	CodeIntrPending = "PEN-SYS-001" //pending
+	CodeSuccess    = "SUC-APP-000" //Success
+	CodeInqSuccess = "INQ-INT-001" //Inq Success
+	CodePending    = "PEN-SYS-001" //pending
 
 	// Webpage - ERR User Input
 	CodeInvalidIdGame          = "ERR-VAL-100"
@@ -74,9 +74,84 @@ const (
 	// System Error
 	CodeErrSys404 = "ERR-SYS-404"
 	CodeErrSys500 = "ERR-SYS-500"
+	//================New Mapping RC
+	CodeInvalidProduct               = "INQ-APP-005"
+	CodeInvalidCustID                = "INQ-APP-004"
+	CodeServiceDisruption            = "INQ-APP-003"
+	CodeInvalidTransactionNoOrStatus = "INQ-APP-006"
+	CodeInvalidRequest               = "INQ-APP-007"
+	CodeFailed                       = "PAY-APP-003"
+	CodeBalanceLimit                 = "PAY-APP-005"
+	CodeMaxTrx                       = "PAY-APP-004"
+	CodeInvalidPin                   = "PAY-APP-008"
+	CodeInvalidPayment               = "PAY-APP-009"
+	//================End New Mapping RC
 )
 
 var responseCodes = map[string]ResponseMetadata{
+	//================New Mapping RC
+	CodeInvalidProduct: {
+		StatusCode:    CodeInvalidProduct,
+		StatusMessage: "FAILED",
+		// StatusDesc:    "Payment confirmed and transaction successfully processed. Delivery is in progress.",
+		UiMessage: "Slow aja, nggak usah spaneng! Istirahat bentar, trus klik lagi yuk!",
+	},
+	CodeInvalidCustID: {
+		StatusCode:    CodeInvalidCustID,
+		StatusMessage: "INQUIRY_FAILED",
+		// StatusDesc:    "Payment confirmed and transaction successfully processed. Delivery is in progress.",
+		UiMessage: "Tenang, jangan buru-buru! Coba intip lagi nomor ID kamu, cocokin bentar, abis itu langsung coba lagi, yuk!",
+	},
+	CodeServiceDisruption: {
+		StatusCode:    CodeServiceDisruption,
+		StatusMessage: "INQUIRY_FAILED",
+		// StatusDesc:    "Payment confirmed and transaction successfully processed. Delivery is in progress.",
+		UiMessage: "Lagi banyak yang antusias barengan. Yuk, Coba lagi ",
+	},
+	CodeInvalidTransactionNoOrStatus: {
+		StatusCode:    CodeInvalidTransactionNoOrStatus,
+		StatusMessage: "INQUIRY_FAILED",
+		// StatusDesc:    "Payment confirmed and transaction successfully processed. Delivery is in progress.",
+		UiMessage: "Slow aja, nggak usah spaneng! Istirahat bentar, trus klik lagi yuk!",
+	},
+	CodeInvalidRequest: {
+		StatusCode:    CodeInvalidRequest,
+		StatusMessage: "INQUIRY_FAILED",
+		// StatusDesc:    "Payment confirmed and transaction successfully processed. Delivery is in progress.",
+		UiMessage: "Slow aja, nggak usah spaneng! Istirahat bentar, trus klik lagi yuk!",
+	},
+	CodeFailed: {
+		StatusCode:    CodeFailed,
+		StatusMessage: "PAYMENT_FAILED",
+		// StatusDesc:    "Payment confirmed and transaction successfully processed. Delivery is in progress.",
+		UiMessage: "Slow aja, nggak usah spaneng! Istirahat bentar, trus coba lagi yuk!",
+	},
+	CodeBalanceLimit: {
+		StatusCode:    CodeBalanceLimit,
+		StatusMessage: "PAYMENT_FAILED",
+		// StatusDesc:    "Payment confirmed and transaction successfully processed. Delivery is in progress.",
+		UiMessage: "Pastiin saldo kamu cukup ya, atau deposit dulu yuuk",
+	},
+	CodeMaxTrx: {
+		StatusCode:    CodeMaxTrx,
+		StatusMessage: "PAYMENT_FAILED",
+		// StatusDesc:    "Payment confirmed and transaction successfully processed. Delivery is in progress.",
+		UiMessage: "Sepertinya terlalu semangat transaksi hari ini, istirahat dulu dan lanjutkan beberapa saat lagi ya",
+	},
+	CodeInvalidPin: {
+		StatusCode:    CodeInvalidPin,
+		StatusMessage: "INVALID_PIN",
+		// StatusDesc:    "Payment confirmed and transaction successfully processed. Delivery is in progress.",
+		UiMessage: "Pelan-pelan ya sepertinya salah pencet pin deh, yuk ulangi lagi",
+	},
+	CodeInvalidPayment: {
+		StatusCode:    CodeInvalidPayment,
+		StatusMessage: "INVALID_PAYMENT",
+		// StatusDesc:    "Payment confirmed and transaction successfully processed. Delivery is in progress.",
+		UiMessage: "Sepertinya terlalu semangat transaksi hari ini, istirahat dulu dan lanjutkan beberapa saat lagi ya",
+	},
+
+	//================End New Mapping RC
 	// Webpage - SUC / PEN / INQ
 	CodeSuccess: {
 		StatusCode:    CodeSuccess,
@@ -90,8 +165,8 @@ var responseCodes = map[string]ResponseMetadata{
 		StatusDesc:    "Inquiry accepted. Product and pricing verified. Awaiting payment confirmation from merchant.",
 		UiMessage:     "Informasi produk berhasil dikonfirmasi. Silakan lanjutkan ke proses pembayaran.",
 	},
-	CodeIntrPending: {
-		StatusCode:    CodeIntrPending,
+	CodePending: {
+		StatusCode:    CodePending,
 		StatusMessage: "PENDING_UPSTREAM",
 		StatusDesc:    "Transaction accepted by core system and currently queued in the upstream gateway.",
 		UiMessage:     "Pembayaran diterima. Pesanan Anda sedang diproses oleh sistem game. Mohon tunggu.",
