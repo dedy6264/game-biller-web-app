@@ -45,12 +45,12 @@ func Payment(c echo.Context) error {
 	var req models.PaymentRequest
 	if err := c.Bind(&req); err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to bind request")
-		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidRequest, nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidRequestPayment, nil))
 	}
 
 	if req.ReferenceNumberInternal == "" {
 		helpers.ProcessLogger(c, svc, "reference_number_internal is empty", "Validation error")
-		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidRequest, nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidRequestPayment, nil))
 	}
 
 	db := connections.DBconn()
@@ -71,7 +71,7 @@ func Payment(c echo.Context) error {
 	// 3. Validasi status transaksi
 	if trx.StatusCode != helpers.CodeInqSuccess {
 		helpers.ProcessLogger(c, svc, "Invalid transaction status: "+trx.StatusCode, "Validation error")
-		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidTransactionNoOrStatus, nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidTransactionNoOrStatusPayment, nil))
 	}
 
 	channel, err := repositories.GetPaymentChannelByID(db, trx.PaymentChannelID)
@@ -195,7 +195,7 @@ func Payment(c echo.Context) error {
 				}
 			default:
 				trx.StatusCode = iakResult.StatusCode
-				trx.StatusMessage = iakResult.ProviderDetail.Message
+				trx.StatusMessage = "PAYMENT_FAILED"
 				if iakResult.DataTransaction.SerialNumber != "" {
 					trx.SerialNumber = iakResult.DataTransaction.SerialNumber
 				}
@@ -242,12 +242,12 @@ func PaymentUnSubscribe(c echo.Context) error {
 	var req models.PaymentRequest
 	if err := c.Bind(&req); err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Failed to bind request")
-		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidRequest, nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidRequestPayment, nil))
 	}
 
 	if req.ReferenceNumberInternal == "" {
 		helpers.ProcessLogger(c, svc, "reference_number_internal is empty", "Validation error")
-		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidRequest, nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidRequestPayment, nil))
 	}
 
 	db := connections.DBconn()
@@ -256,13 +256,13 @@ func PaymentUnSubscribe(c echo.Context) error {
 	trx, err := repositories.GetTransactionByRefInternal(db, req.ReferenceNumberInternal)
 	if err != nil {
 		helpers.ProcessLogger(c, svc, err.Error(), "Transaction not found")
-		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidTransactionNoOrStatus, nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidTransactionNoOrStatusPayment, nil))
 	}
 
 	// 3. Validasi status transaksi
 	if trx.StatusCode != helpers.CodeInqSuccess {
 		helpers.ProcessLogger(c, svc, "Invalid transaction status: "+trx.StatusCode, "Validation error")
-		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidTransactionNoOrStatus, nil))
+		return c.JSON(http.StatusOK, helpers.BuildResponse(helpers.CodeInvalidTransactionNoOrStatusPayment, nil))
 	}
 
 	channel, err := repositories.GetPaymentChannelByID(db, trx.PaymentChannelID)
@@ -345,7 +345,7 @@ func PaymentUnSubscribe(c echo.Context) error {
 				}
 			default:
 				trx.StatusCode = iakResult.StatusCode
-				trx.StatusMessage = iakResult.ProviderDetail.Message
+				trx.StatusMessage = "PAYMENT_FAILED"
 				if iakResult.DataTransaction.SerialNumber != "" {
 					trx.SerialNumber = iakResult.DataTransaction.SerialNumber
 				}

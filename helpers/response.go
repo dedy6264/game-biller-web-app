@@ -75,16 +75,18 @@ const (
 	CodeErrSys404 = "ERR-SYS-404"
 	CodeErrSys500 = "ERR-SYS-500"
 	//================New Mapping RC
-	CodeInvalidProduct               = "INQ-APP-005"
-	CodeInvalidCustID                = "INQ-APP-004"
-	CodeServiceDisruption            = "INQ-APP-003"
-	CodeInvalidTransactionNoOrStatus = "INQ-APP-006"
-	CodeInvalidRequest               = "INQ-APP-007"
-	CodeFailed                       = "PAY-APP-003"
-	CodeBalanceLimit                 = "PAY-APP-005"
-	CodeMaxTrx                       = "PAY-APP-004"
-	CodeInvalidPin                   = "PAY-APP-008"
-	CodeInvalidPayment               = "PAY-APP-009"
+	CodeInvalidProduct                      = "INQ-APP-005"
+	CodeInvalidCustID                       = "INQ-APP-004"
+	CodeServiceDisruption                   = "INQ-APP-003"
+	CodeInvalidTransactionNoOrStatus        = "INQ-APP-006"
+	CodeInvalidTransactionNoOrStatusPayment = "PAY-APP-006"
+	CodeInvalidRequest                      = "INQ-APP-007"
+	CodeInvalidRequestPayment               = "PAY-APP-007"
+	CodeFailed                              = "PAY-APP-003"
+	CodeBalanceLimit                        = "PAY-APP-005"
+	CodeMaxTrx                              = "PAY-APP-004"
+	CodeInvalidPin                          = "PAY-APP-008"
+	CodeInvalidPayment                      = "PAY-APP-009"
 	//================End New Mapping RC
 )
 
@@ -114,9 +116,21 @@ var responseCodes = map[string]ResponseMetadata{
 		// StatusDesc:    "Payment confirmed and transaction successfully processed. Delivery is in progress.",
 		UiMessage: "Slow aja, nggak usah spaneng! Istirahat bentar, trus klik lagi yuk!",
 	},
+	CodeInvalidTransactionNoOrStatusPayment: {
+		StatusCode:    CodeInvalidTransactionNoOrStatusPayment,
+		StatusMessage: "PAYMENT_FAILED",
+		// StatusDesc:    "Payment confirmed and transaction successfully processed. Delivery is in progress.",
+		UiMessage: "Slow aja, nggak usah spaneng! Istirahat bentar, trus klik lagi yuk!",
+	},
 	CodeInvalidRequest: {
 		StatusCode:    CodeInvalidRequest,
 		StatusMessage: "INQUIRY_FAILED",
+		// StatusDesc:    "Payment confirmed and transaction successfully processed. Delivery is in progress.",
+		UiMessage: "Slow aja, nggak usah spaneng! Istirahat bentar, trus klik lagi yuk!",
+	},
+	CodeInvalidRequestPayment: {
+		StatusCode:    CodeInvalidRequestPayment,
+		StatusMessage: "PAYMENT_FAILED",
 		// StatusDesc:    "Payment confirmed and transaction successfully processed. Delivery is in progress.",
 		UiMessage: "Slow aja, nggak usah spaneng! Istirahat bentar, trus klik lagi yuk!",
 	},
